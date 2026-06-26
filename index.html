@@ -1,478 +1,2081 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>温湿度监测调控记录</title>
+    <title>中药计价系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css ">
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; font-family: "宋体", "微软雅黑", sans-serif; }
-        body { padding:20px; max-width:1600px; margin:0 auto; position:relative; }
-        .switch-btn { position:absolute; top:12px; left:12px; width:32px; height:32px; border:1px solid #333; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:16px; z-index:100; border-radius:3px; }
-        .switch-btn:hover { background:#f0f0f0; }
-        .title-wrap { text-align:center; margin-bottom:6px; display:flex; align-items:center; justify-content:center; gap:12px; }
-        .title { font-size:20px; font-weight:bold; }
-        .status-pill { display:inline-flex; align-items:center; gap:5px; font-size:12px; padding:3px 10px; border-radius:12px; border:1px solid #ccc; background:#f5f5f5; color:#555; }
-        .status-pill .dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
-        .status-pill .dot.on { background:#4caf50; }
-        .status-pill .dot.off { background:#9e9e9e; }
-        .status-pill .dot.wait { background:#ff9800; }
-        .standard { text-align:center; font-size:14px; margin-bottom:10px; color:#555; }
-        .btn-bar { text-align:center; margin-bottom:12px; }
-        .btn-bar button { margin:0 6px; padding:6px 18px; font-size:13px; cursor:pointer; border:1px solid #333; background:#f5f5f5; border-radius:3px; }
-        .btn-bar button:hover { background:#e0e0e0; }
-        .btn-bar .primary { background:#2c3e50; color:#fff; border-color:#2c3e50; }
-        .btn-bar .primary:hover { background:#34495e; }
-        .table-container { width:100%; overflow-x:auto; overflow-y:auto; max-height:850px; border:2px solid #000; margin-bottom:25px; }
-        table { width:100%; border-collapse:collapse; white-space:nowrap; }
-        th, td { border:1px solid #000; padding:7px 5px; text-align:center; font-size:13px; }
-        th { background:#f8f9fa; font-weight:bold; position:sticky; top:0; z-index:10; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background-color: #E8F5E9;
+            color: #333;
+            line-height: 1.5;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 4px rgba(76, 175, 160, 0.1);
+            border: 1px solid #C8E6C9;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s;
+            color: #666;
+        }
+        
+        .tab.active {
+            background-color: #80cbc4;
+            color: white;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.1);
+        }
+        
+        .tab:hover:not(.active) {
+            background-color: #D0E8D0;
+        }
+        
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(76, 175, 160, 0.08);
+            margin-bottom: 15px;
+            border: 1px solid #C8E6C9;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 首页布局 - 左右分栏 */
+        .home-container {
+            display: flex;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .home-container {
+                flex-direction: column;
+            }
+        }
+        
+        .left-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .input-section {
+            background-color: #E8F5E9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid #C8E6C9;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #b2dfdb;
+            border-radius: 6px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 180px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+            background-color: white;
+            line-height: 1.6;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #80cbc4;
+            box-shadow: 0 0 0 2px rgba(128, 203, 196, 0.2);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex: 1;
+        }
+        
+        .btn-primary {
+            background-color: #80cbc4;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #6bb9b1;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(128, 203, 196, 0.3);
+        }
+        
+        .btn-secondary {
+            background-color: #ffd54f;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #ffca28;
+            transform: translateY(-2px);
+        }
+        
+        .btn-outline {
+            background-color: transparent;
+            color: #80cbc4;
+            border: 2px solid #80cbc4;
+        }
+        
+        .btn-outline:hover {
+            background-color: rgba(128, 203, 196, 0.1);
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            flex: 0 0 auto;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .results-section {
+            background-color: #E8F5E9;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #C8E6C9;
+            height: 100%;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #C8E6C9;
+        }
+        
+        .results-title {
+            color: #4a8c87;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .price-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: #80cbc4;
+            font-size: 13px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            transition: all 0.3s;
+            background-color: rgba(128, 203, 196, 0.1);
+        }
+        
+        .price-toggle:hover {
+            background-color: rgba(128, 203, 196, 0.2);
+        }
+        
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            flex-grow: 1;
+        }
+        
+        .results-table th {
+            background-color: #80cbc4;
+            color: white;
+            text-align: left;
+            padding: 10px 8px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        .results-table td {
+            padding: 8px;
+            border-bottom: 1px solid #D0E8D0;
+            height: 32px;
+            position: relative;
+            /* 防止换行 */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .results-table tr:nth-child(even) {
+            background-color: #F1F8E9;
+        }
+        
+        .results-table tr:hover {
+            background-color: #E0F2F1;
+        }
+        
+        .total-price {
+            text-align: right;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #4a8c87;
+            background-color: #E0F2F1;
+            border-radius: 6px;
+            margin-top: 15px;
+            border: 1px solid #C8E6C9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .total-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            width: 100%;
+            justify-content: space-between;
+        }
+        
+        .herb-count {
+            font-size: 14px;
+            color: #4a8c87;
+            font-weight: 600;
+            padding: 4px 12px;
+            background-color: rgba(128, 203, 196, 0.1);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .total-amount {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .copy-btn {
+            background-color: rgba(128, 203, 196, 0.2);
+            border: none;
+            border-radius: 4px;
+            padding: 2px 8px;
+            cursor: pointer;
+            color: #4a8c87;
+            font-size: 12px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            min-width: 50px;
+            justify-content: center;
+        }
+        
+        .copy-btn:hover {
+            background-color: rgba(128, 203, 196, 0.4);
+        }
+        
+        /* 后台管理布局优化 */
+        .admin-header {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px 10px 38px;
+            border: 1px solid #b2dfdb;
+            border-radius: 6px;
+            font-size: 14px;
+            background-color: white;
+            transition: all 0.3s;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #80cbc4;
+            box-shadow: 0 0 0 2px rgba(128, 203, 196, 0.2);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #80cbc4;
+            font-size: 14px;
+        }
+        
+        .admin-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .price-list {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #C8E6C9;
+            border-radius: 6px;
+            background-color: white;
+        }
+        
+        .price-item {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 0.8fr 1.2fr 1.5fr 0.5fr;
+            gap: 10px;
+            padding: 10px;
+            border-bottom: 1px solid #D0E8D0;
+            align-items: center;
+            font-size: 13px;
+        }
+        
+        .price-item.header {
+            font-weight: 700;
+            background-color: #E0F2F1;
+            color: #4a8c87;
+            border-bottom: 2px solid #b2dfdb;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        
+        .price-item:last-child {
+            border-bottom: none;
+        }
+        
+        .price-item:nth-child(even) {
+            background-color: #F1F8E9;
+        }
+        
+        .delete-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px 6px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            color: #ff8a80;
+        }
+        
+        .delete-btn:hover {
+            background-color: rgba(255, 138, 128, 0.15);
+        }
+        
+        .notification {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 12px 20px;
+            border-radius: 6px;
+            color: white;
+            font-weight: 600;
+            font-size: 13px;
+            z-index: 1001;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s, fadeOut 0.3s 2.7s;
+        }
+        
+        .success {
+            background-color: #80cbc4;
+        }
+        
+        .error {
+            background-color: #ff8a80;
+        }
+        
+        .info {
+            background-color: #64b5f6;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .upload-file-input {
+            display: none;
+        }
+        
+        .upload-progress {
+            margin: 10px 0;
+            padding: 12px;
+            background-color: #E0F2F1;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #4a8c87;
+            border-left: 4px solid #80cbc4;
+        }
+        
+        .data-count {
+            margin: 8px 0 12px 0;
+            font-size: 13px;
+            color: #4a8c87;
+            text-align: center;
+            padding: 6px;
+            background-color: #E8F5E9;
+            border-radius: 4px;
+            border: 1px solid #C8E6C9;
+        }
+        
+        .zero-price {
+            color: #ff8a80;
+            font-weight: 600;
+        }
+        
+        .not-found {
+            color: #ff8a80;
+            font-weight: 600;
+        }
+        
+        .empty-results {
+            text-align: center;
+            color: #7aa9a5;
+            padding: 40px 20px;
+            font-size: 14px;
+        }
+        
+        .empty-results i {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #b2dfdb;
+        }
+        
+        /* 可编辑单元格样式 */
+        .editable-cell {
+            cursor: pointer;
+            position: relative;
+            padding: 4px 8px;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+        
+        .editable-cell:hover {
+            background-color: rgba(128, 203, 196, 0.1);
+        }
+        
+        .editable-cell.editing {
+            padding: 0;
+        }
+        
+        .editable-cell input {
+            width: 100%;
+            height: 100%;
+            border: 2px solid #80cbc4;
+            padding: 6px;
+            font-size: 13px;
+            outline: none;
+            border-radius: 3px;
+            background-color: white;
+        }
+        
+        .price-toggle.active .fa-eye {
+            display: none;
+        }
+        
+        .price-toggle.active .fa-eye-slash {
+            display: inline-block;
+        }
+        
+        .price-toggle:not(.active) .fa-eye-slash {
+            display: none;
+        }
+        
+        .price-toggle:not(.active) .fa-eye {
+            display: inline-block;
+        }
+        
+        /* 修改：特殊要求样式 - 去掉边框 */
+        .special-method {
+            color: #e65100;
+            font-size: 12px;
+            /* 去掉背景颜色和边框 */
+            padding: 0;
+            border: none;
+            background: none;
+        }
+        
+        /* 手机端行高缩短1mm */
+        @media (max-width: 768px) {
+            .home-container {
+                flex-direction: column;
+            }
+            
+            .price-item {
+                grid-template-columns: 1fr;
+                gap: 5px;
+                padding: 8px;
+            }
+            
+            .price-item.header {
+                display: none;
+            }
+            
+            .admin-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-box {
+                min-width: 100%;
+            }
+            
+            .admin-buttons {
+                justify-content: center;
+            }
+            
+            .results-table {
+                font-size: 12px;
+            }
+            
+            .results-table th, .results-table td {
+                padding: 5px 4px; /* 减少padding，缩短行高 */
+            }
+            
+            .results-table td {
+                height: 32px; /* 从原来的38px减少到32px，缩短约1.5mm */
+                /* 强制不换行 */
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 80px; /* 限制最大宽度，防止撑开 */
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .results-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .total-price {
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+                padding: 10px 15px;
+                height: auto;
+            }
+            
+            .total-info {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                gap: 8px;
+                width: 100%;
+                flex-wrap: nowrap;
+            }
+            
+            .herb-count {
+                flex: 0 0 auto;
+                padding: 3px 8px;
+                font-size: 13px;
+                gap: 6px;
+                white-space: nowrap;
+            }
+            
+            .total-amount {
+                flex: 0 0 auto;
+                font-size: 16px;
+                white-space: nowrap;
+            }
+            
+            .copy-btn {
+                flex: 0 0 auto;
+                padding: 2px 6px;
+                font-size: 11px;
+                min-width: 40px;
+            }
+            
+            .btn {
+                min-width: 120px;
+                padding: 10px 20px;
+            }
+            
+            .btn-sm {
+                min-width: auto;
+                padding: 5px 10px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .total-info {
+                flex-wrap: nowrap;
+                gap: 6px;
+            }
+            
+            .herb-count {
+                font-size: 12px;
+                padding: 2px 6px;
+            }
+            
+            .total-amount {
+                font-size: 15px;
+            }
+            
+            .copy-btn {
+                font-size: 10px;
+                padding: 2px 4px;
+                min-width: 36px;
+            }
+            
+            .total-price {
+                padding: 8px 12px;
+            }
+            
+            .results-table td {
+                height: 30px;
+                max-width: 60px; /* 更小屏幕进一步限制宽度 */
+            }
+            
+            .results-table th, .results-table td {
+                padding: 4px 3px;
+            }
+        }
+        
+        /* 超小屏幕设备进一步优化 */
+        @media (max-width: 360px) {
+            .results-table td {
+                height: 28px;
+                font-size: 11px;
+                max-width: 50px;
+            }
+            
+            .results-table th {
+                font-size: 11px;
+                padding: 4px 3px;
+            }
+            
+            .total-price {
+                padding: 6px 10px;
+            }
+            
+            .total-amount {
+                font-size: 14px;
+            }
+            
+            .herb-count {
+                font-size: 11px;
+                padding: 2px 4px;
+            }
+            
+            .copy-btn {
+                font-size: 9px;
+                padding: 1px 3px;
+                min-width: 32px;
+            }
+        }
 
-        /* 上午区域 - 蓝色系 */
-        .am-header { background:#bbdefb !important; border-left:3px solid #1565c0 !important; border-right:3px solid #1565c0 !important; border-top:3px solid #1565c0 !important; font-size:15px; color:#0d47a1; letter-spacing:2px; }
-        .am-group { border-left:2px solid #1976d2; border-right:2px solid #1976d2; background:#e3f2fd; }
+        /* 复制成功提示框样式 */
+        .copy-success-tips {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 10px 20px;
+            background: rgba(76, 175, 160, 0.9);
+            color: white;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
 
-        /* 下午区域 - 橙色系 */
-        .pm-header { background:#ffe0b2 !important; border-left:3px solid #ef6c00 !important; border-right:3px solid #ef6c00 !important; border-top:3px solid #ef6c00 !important; font-size:15px; color:#e65100; letter-spacing:2px; }
-        .pm-group { border-left:2px solid #f57c00; border-right:2px solid #f57c00; background:#fff3e0; }
-
-        /* 中间粗黑分隔线 */
-        .divider-col { border-left:4px solid #000 !important; border-right:4px solid #000 !important; background:#e0e0e0 !important; }
-
-        .date-col { min-width:75px; font-weight:bold; font-size:12px; }
-        .temp-col { min-width:55px; }
-        .humi-col { min-width:55px; }
-        .measure-col { min-width:95px; }
-        .sign-col { min-width:75px; }
-        td[contenteditable="true"] { background:#fffde7; cursor:text; }
-        td[contenteditable="true"]:focus { background:#fff9c4; box-shadow:inset 0 0 0 2px #3498db; outline:none; }
-        td.locked { background:#e8f5e9; cursor:default; }
-        td .empty { color:#bbb; font-style:italic; pointer-events:none; }
-        .measure-ok { color:#2e7d32; font-weight:bold; }
-        .measure-warn { color:#c62828; font-weight:bold; }
-        #table2-container { display:none; }
+        .copy-success-tips.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.05);
+        }
     </style>
 <base target="_blank">
-<base target="_blank">
 </head>
+
 <body>
-<button class="switch-btn" id="switchBtn" title="切换表格">&#8644;</button>
+    <div class="container">
+        <div class="nav-tabs">
+            <div class="tab active" data-tab="home">方剂计价</div>
+            <div class="tab" data-tab="admin">价格管理</div>
+        </div>
 
-<div id="table1-container">
-    <div class="title-wrap">
-        <div class="title">瑞年大药房温湿度监测调控记录</div>
-        <span class="status-pill" id="status1"><span class="dot wait" id="dot1"></span><span id="txt1">等待自动更新</span></span>
+        <!-- 首页 - 方剂价格计算 -->
+        <div id="home" class="tab-content active">
+            <div class="home-container">
+                <!-- 左面板：输入区域 -->
+                <div class="left-panel">
+                    <div class="input-section">
+                        <textarea id="prescriptionInput" placeholder="请输入方剂组成，格式：药材 用量，如：桂枝 15，白芍 25。按回车键可直接计算价格"></textarea>
+
+                        <div class="action-buttons">
+                            <button class="btn btn-primary" id="calculateBtn">
+                                <i class="fas fa-calculator"></i> 计算价格
+                            </button>
+                            <button class="btn btn-secondary" id="clearBtn">
+                                <i class="fas fa-broom"></i> 清空
+                            </button>
+                            <button class="btn btn-outline" id="prevPrescriptionBtn" disabled>
+                                <i class="fas fa-arrow-left"></i> 上个方剂
+                            </button>
+                            <button class="btn btn-outline" id="nextPrescriptionBtn" disabled>
+                                <i class="fas fa-arrow-right"></i> 下个方剂
+                            </button>
+                            <button class="btn btn-outline" id="uploadImageBtn">
+                                <i class="fas fa-image"></i> 上传图片
+                            </button>
+                            <input type="file" id="imageUpload" accept="image/*" class="hidden">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右面板：结果显示 -->
+                <div class="right-panel">
+                    <div class="results-section">
+                        <div class="results-header">
+                            <div class="results-title">方剂明细</div>
+                            <div class="price-toggle" id="priceToggle">
+                                <i class="fas fa-eye"></i>
+                                <i class="fas fa-eye-slash"></i>
+                            </div>
+                        </div>
+
+                        <div id="resultsContainer" class="hidden">
+                            <table class="results-table" id="resultsTable">
+                                <thead>
+                                    <tr>
+                                        <th>药材</th>
+                                        <th>位置</th>
+                                        <th>用量</th>
+                                        <th>特殊</th>
+                                        <th class="price-header">价格</th>
+                                        <th>提示</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="resultsBody"></tbody>
+                            </table>
+                            <div class="total-price">
+                                <div class="total-info">
+                                    <div class="herb-count" id="herbCount">
+                                        <span id="herbCountText">0味</span>
+                                        <button class="copy-btn" id="copyHerbsBtn" title="复制药材列表">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                    <div class="total-amount">
+                                        <span>总价:</span>
+                                        <span id="totalAmount">0.00</span>
+                                        <span>元</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="emptyResults" class="empty-results">
+                            <i class="fas fa-leaf"></i>
+                            <div>输入方剂并点击"计算价格"查看结果</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 后台管理页面 -->
+        <div id="admin" class="tab-content">
+            <div class="admin-header">
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="searchHerb" placeholder="搜索药材...">
+                </div>
+
+                <div class="admin-buttons">
+                    <button class="btn btn-primary" id="addHerbBtn">
+                        <i class="fas fa-plus"></i> 添加药材
+                    </button>
+                    <button class="btn btn-outline" id="uploadPriceBtn">
+                        <i class="fas fa-upload"></i> 上传Excel
+                    </button>
+                    <input type="file" id="priceFileUpload" accept=".xlsx,.xls" class="upload-file-input">
+                    <button class="btn btn-secondary" id="clearAllBtn">
+                        <i class="fas fa-trash"></i> 清空
+                    </button>
+                </div>
+            </div>
+
+            <div id="uploadProgress" class="upload-progress hidden">
+                正在处理Excel文件...
+            </div>
+
+            <div class="data-count">
+                当前数据: <span id="dataCount">0</span> 条
+            </div>
+
+            <div class="price-list">
+                <div class="price-item header">
+                    <div>药材</div>
+                    <div>用量</div>
+                    <div>单价</div>
+                    <div>位置</div>
+                    <div>提示</div>
+                    <div>操作</div>
+                </div>
+                <div id="priceList"></div>
+            </div>
+        </div>
     </div>
-    <div class="standard">适宜温度范围 0—30 摄氏度，适宜相对湿度 45%—65%</div>
-    <div class="btn-bar">
-        <button class="primary" onclick="addTodayRow('tableBody1')">&#10133; 新增</button>
-        <button onclick="forceUnlockToday('tableBody1')">&#128275; 修改</button>
-        <button onclick="fillMissingDates('tableBody1')">&#128203; 整理</button>
-    </div>
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th class="date-col" rowspan="2">日期</th>
-                    <th class="am-header" colspan="6">【上午 10：00】</th>
-                    <th class="pm-header" colspan="6">【下午 15：00】</th>
-                </tr>
-                <tr>
-                    <th class="am-group">温度<br><small>(&#8451;)</small></th>
-                    <th class="am-group">湿度<br><small>(%)</small></th>
-                    <th class="am-group">调控措施</th>
-                    <th class="am-group">调控后温度</th>
-                    <th class="am-group">调控后湿度</th>
-                    <th class="am-group">记录员</th>
-                    <th class="pm-group">温度<br><small>(&#8451;)</small></th>
-                    <th class="pm-group">湿度<br><small>(%)</small></th>
-                    <th class="pm-group">调控措施</th>
-                    <th class="pm-group">调控后温度</th>
-                    <th class="pm-group">调控后湿度</th>
-                    <th class="pm-group">记录员</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody1"></tbody>
-        </table>
-    </div>
-</div>
 
-<div id="table2-container">
-    <div class="title-wrap">
-        <div class="title">天龙药业连锁温湿度监测调控记录</div>
-        <span class="status-pill" id="status2"><span class="dot wait" id="dot2"></span><span id="txt2">等待自动更新</span></span>
-    </div>
-    <div class="standard">适宜温度范围 0—30 摄氏度，适宜相对湿度 45%—65%</div>
-    <div class="btn-bar">
-        <button class="primary" onclick="addTodayRow('tableBody2')">&#10133; 新增</button>
-        <button onclick="forceUnlockToday('tableBody2')">&#128275; 修改</button>
-        <button onclick="fillMissingDates('tableBody2')">&#128203; 整理</button>
-    </div>
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th class="date-col" rowspan="2">日期</th>
-                    <th class="am-header" colspan="6">【上午 10：00】</th>
-                    <th class="pm-header" colspan="6">【下午 15：00】</th>
-                </tr>
-                <tr>
-                    <th class="am-group">温度<br><small>(&#8451;)</small></th>
-                    <th class="am-group">湿度<br><small>(%)</small></th>
-                    <th class="am-group">调控措施</th>
-                    <th class="am-group">调控后温度</th>
-                    <th class="am-group">调控后湿度</th>
-                    <th class="am-group">记录员</th>
-                    <th class="pm-group">温度<br><small>(&#8451;)</small></th>
-                    <th class="pm-group">湿度<br><small>(%)</small></th>
-                    <th class="pm-group">调控措施</th>
-                    <th class="pm-group">调控后温度</th>
-                    <th class="pm-group">调控后湿度</th>
-                    <th class="pm-group">记录员</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody2"></tbody>
-        </table>
-    </div>
-</div>
-<script>
-const STORAGE_KEY = 'wenshidu_records_v9';
-const RECORDER_NAME = '蔡伟斌';
+    <!-- 复制成功提示框 -->
+    <div class="copy-success-tips" id="copySuccessTips">复制成功</div>
 
-const PRELOAD_DATA = {
-    table1: [{"date":"26-05-15","amTemp":"25.0","amHumi":"68","amMeasure":"开空调除湿","amAfterTemp":"25.0","amAfterHumi":"65","amSign":"蔡伟斌","pmTemp":"21.9","pmHumi":"57","pmMeasure":"符合标准","pmAfterTemp":"21.9","pmAfterHumi":"57","pmSign":"蔡伟斌","locked":true},{"date":"26-05-16","amTemp":"31.4","amHumi":"62","amMeasure":"开空调降温","amAfterTemp":"24.6","amAfterHumi":"62","amSign":"蔡伟斌","pmTemp":"30.0","pmHumi":"41","pmMeasure":"符合标准","pmAfterTemp":"30.0","pmAfterHumi":"41","pmSign":"蔡伟斌","locked":true},{"date":"26-05-17","amTemp":"33.1","amHumi":"41","amMeasure":"开空调降温","amAfterTemp":"27.3","amAfterHumi":"41","amSign":"蔡伟斌","pmTemp":"28.6","pmHumi":"65","pmMeasure":"符合标准","pmAfterTemp":"28.6","pmAfterHumi":"65","pmSign":"蔡伟斌","locked":true},{"date":"26-05-18","amTemp":"22.0","amHumi":"66","amMeasure":"开空调除湿","amAfterTemp":"22.0","amAfterHumi":"47","amSign":"蔡伟斌","pmTemp":"23.2","pmHumi":"43","pmMeasure":"符合标准","pmAfterTemp":"23.2","pmAfterHumi":"43","pmSign":"蔡伟斌","locked":true},{"date":"26-05-19","amTemp":"26.1","amHumi":"57","amMeasure":"符合标准","amAfterTemp":"26.1","amAfterHumi":"57","amSign":"蔡伟斌","pmTemp":"22.8","pmHumi":"66","pmMeasure":"开空调除湿","pmAfterTemp":"22.8","pmAfterHumi":"65","pmSign":"蔡伟斌","locked":true},{"date":"26-05-20","amTemp":"30.8","amHumi":"61","amMeasure":"开空调降温","amAfterTemp":"25.2","amAfterHumi":"61","amSign":"蔡伟斌","pmTemp":"34.4","pmHumi":"67","pmMeasure":"制冷＋除湿","pmAfterTemp":"22.3","pmAfterHumi":"53","pmSign":"蔡伟斌","locked":true},{"date":"26-05-21","amTemp":"29.6","amHumi":"44","amMeasure":"符合标准","amAfterTemp":"29.6","amAfterHumi":"44","amSign":"蔡伟斌","pmTemp":"27.6","pmHumi":"71","pmMeasure":"开空调除湿","pmAfterTemp":"27.6","pmAfterHumi":"49","pmSign":"蔡伟斌","locked":true},{"date":"26-05-22","amTemp":"28.5","amHumi":"43","amMeasure":"符合标准","amAfterTemp":"28.5","amAfterHumi":"43","amSign":"蔡伟斌","pmTemp":"32.7","pmHumi":"80","pmMeasure":"制冷＋除湿","pmAfterTemp":"27.7","pmAfterHumi":"52","pmSign":"蔡伟斌","locked":true},{"date":"26-05-23","amTemp":"28.1","amHumi":"40","amMeasure":"符合标准","amAfterTemp":"28.1","amAfterHumi":"40","amSign":"蔡伟斌","pmTemp":"24.9","pmHumi":"42","pmMeasure":"符合标准","pmAfterTemp":"24.9","pmAfterHumi":"42","pmSign":"蔡伟斌","locked":true},{"date":"26-05-24","amTemp":"30.2","amHumi":"57","amMeasure":"开空调降温","amAfterTemp":"26.3","amAfterHumi":"57","amSign":"蔡伟斌","pmTemp":"21.0","pmHumi":"40","pmMeasure":"符合标准","pmAfterTemp":"21.0","pmAfterHumi":"40","pmSign":"蔡伟斌","locked":true},{"date":"26-05-25","amTemp":"34.5","amHumi":"54","amMeasure":"开空调降温","amAfterTemp":"27.4","amAfterHumi":"54","amSign":"蔡伟斌","pmTemp":"32.7","pmHumi":"40","pmMeasure":"开空调降温","pmAfterTemp":"22.8","pmAfterHumi":"40","pmSign":"蔡伟斌","locked":true},{"date":"26-05-26","amTemp":"28.8","amHumi":"52","amMeasure":"符合标准","amAfterTemp":"28.8","amAfterHumi":"52","amSign":"蔡伟斌","pmTemp":"31.1","pmHumi":"46","pmMeasure":"开空调降温","pmAfterTemp":"27.9","pmAfterHumi":"46","pmSign":"蔡伟斌","locked":true},{"date":"26-05-27","amTemp":"24.9","amHumi":"41","amMeasure":"符合标准","amAfterTemp":"24.9","amAfterHumi":"41","amSign":"蔡伟斌","pmTemp":"20.7","pmHumi":"77","pmMeasure":"开空调除湿","pmAfterTemp":"20.7","pmAfterHumi":"57","pmSign":"蔡伟斌","locked":true},{"date":"26-05-28","amTemp":"29.1","amHumi":"68","amMeasure":"开空调除湿","amAfterTemp":"29.1","amAfterHumi":"61","amSign":"蔡伟斌","pmTemp":"25.7","pmHumi":"80","pmMeasure":"开空调除湿","pmAfterTemp":"25.7","pmAfterHumi":"52","pmSign":"蔡伟斌","locked":true},{"date":"26-05-29","amTemp":"27.5","amHumi":"51","amMeasure":"符合标准","amAfterTemp":"27.5","amAfterHumi":"51","amSign":"蔡伟斌","pmTemp":"24.7","pmHumi":"46","pmMeasure":"符合标准","pmAfterTemp":"24.7","pmAfterHumi":"46","pmSign":"蔡伟斌","locked":true},{"date":"26-05-30","amTemp":"30.2","amHumi":"60","amMeasure":"开空调降温","amAfterTemp":"22.2","amAfterHumi":"60","amSign":"蔡伟斌","pmTemp":"30.3","pmHumi":"66","pmMeasure":"制冷＋除湿","pmAfterTemp":"23.4","pmAfterHumi":"57","pmSign":"蔡伟斌","locked":true},{"date":"26-05-31","amTemp":"27.5","amHumi":"80","amMeasure":"开空调除湿","amAfterTemp":"27.5","amAfterHumi":"48","amSign":"蔡伟斌","pmTemp":"32.4","pmHumi":"70","pmMeasure":"制冷＋除湿","pmAfterTemp":"27.1","pmAfterHumi":"63","pmSign":"蔡伟斌","locked":true},{"date":"26-06-01","amTemp":"25.9","amHumi":"50","amMeasure":"符合标准","amAfterTemp":"25.9","amAfterHumi":"50","amSign":"蔡伟斌","pmTemp":"24.3","pmHumi":"77","pmMeasure":"开空调除湿","pmAfterTemp":"24.3","pmAfterHumi":"65","pmSign":"蔡伟斌","locked":true},{"date":"26-06-02","amTemp":"31.2","amHumi":"77","amMeasure":"制冷＋除湿","amAfterTemp":"27.8","amAfterHumi":"47","amSign":"蔡伟斌","pmTemp":"20.3","pmHumi":"74","pmMeasure":"开空调除湿","pmAfterTemp":"20.3","pmAfterHumi":"65","pmSign":"蔡伟斌","locked":true},{"date":"26-06-03","amTemp":"28.9","amHumi":"62","amMeasure":"符合标准","amAfterTemp":"28.9","amAfterHumi":"62","amSign":"蔡伟斌","pmTemp":"20.6","pmHumi":"70","pmMeasure":"开空调除湿","pmAfterTemp":"20.6","pmAfterHumi":"46","pmSign":"蔡伟斌","locked":true},{"date":"26-06-04","amTemp":"34.2","amHumi":"69","amMeasure":"制冷＋除湿","amAfterTemp":"27.0","amAfterHumi":"60","amSign":"蔡伟斌","pmTemp":"28.4","pmHumi":"40","pmMeasure":"符合标准","pmAfterTemp":"28.4","pmAfterHumi":"40","pmSign":"蔡伟斌","locked":true},{"date":"26-06-05","amTemp":"22.1","amHumi":"79","amMeasure":"开空调除湿","amAfterTemp":"22.1","amAfterHumi":"59","amSign":"蔡伟斌","pmTemp":"34.8","pmHumi":"44","pmMeasure":"开空调降温","pmAfterTemp":"22.9","pmAfterHumi":"44","pmSign":"蔡伟斌","locked":true},{"date":"26-06-06","amTemp":"20.4","amHumi":"63","amMeasure":"符合标准","amAfterTemp":"20.4","amAfterHumi":"63","amSign":"蔡伟斌","pmTemp":"21.7","pmHumi":"61","pmMeasure":"符合标准","pmAfterTemp":"21.7","pmAfterHumi":"61","pmSign":"蔡伟斌","locked":true},{"date":"26-06-07","amTemp":"21.9","amHumi":"43","amMeasure":"符合标准","amAfterTemp":"21.9","amAfterHumi":"43","amSign":"蔡伟斌","pmTemp":"33.5","pmHumi":"65","pmMeasure":"开空调降温","pmAfterTemp":"24.6","pmAfterHumi":"65","pmSign":"蔡伟斌","locked":true},{"date":"26-06-08","amTemp":"29.0","amHumi":"80","amMeasure":"开空调除湿","amAfterTemp":"29.0","amAfterHumi":"48","amSign":"蔡伟斌","pmTemp":"23.6","pmHumi":"74","pmMeasure":"开空调除湿","pmAfterTemp":"23.6","pmAfterHumi":"52","pmSign":"蔡伟斌","locked":true},{"date":"26-06-09","amTemp":"34.1","amHumi":"44","amMeasure":"开空调降温","amAfterTemp":"27.3","amAfterHumi":"44","amSign":"蔡伟斌","pmTemp":"30.3","pmHumi":"67","pmMeasure":"制冷＋除湿","pmAfterTemp":"23.0","pmAfterHumi":"62","pmSign":"蔡伟斌","locked":true},{"date":"26-06-10","amTemp":"22.8","amHumi":"71","amMeasure":"开空调除湿","amAfterTemp":"22.8","amAfterHumi":"54","amSign":"蔡伟斌","pmTemp":"29.6","pmHumi":"52","pmMeasure":"符合标准","pmAfterTemp":"29.6","pmAfterHumi":"52","pmSign":"蔡伟斌","locked":true},{"date":"26-06-11","amTemp":"20.1","amHumi":"68","amMeasure":"开空调除湿","amAfterTemp":"20.1","amAfterHumi":"58","amSign":"蔡伟斌","pmTemp":"22.5","pmHumi":"42","pmMeasure":"符合标准","pmAfterTemp":"22.5","pmAfterHumi":"42","pmSign":"蔡伟斌","locked":true},{"date":"26-06-12","amTemp":"22.9","amHumi":"70","amMeasure":"开空调除湿","amAfterTemp":"22.9","amAfterHumi":"49","amSign":"蔡伟斌","pmTemp":"34.3","pmHumi":"45","pmMeasure":"开空调降温","pmAfterTemp":"22.8","pmAfterHumi":"45","pmSign":"蔡伟斌","locked":true},{"date":"26-06-13","amTemp":"27.3","amHumi":"56","amMeasure":"符合标准","amAfterTemp":"27.3","amAfterHumi":"56","amSign":"蔡伟斌","pmTemp":"21.1","pmHumi":"53","pmMeasure":"符合标准","pmAfterTemp":"21.1","pmAfterHumi":"53","pmSign":"蔡伟斌","locked":true},{"date":"26-06-14","amTemp":"24.6","amHumi":"56","amMeasure":"符合标准","amAfterTemp":"24.6","amAfterHumi":"56","amSign":"蔡伟斌","pmTemp":"22.6","pmHumi":"40","pmMeasure":"符合标准","pmAfterTemp":"22.6","pmAfterHumi":"40","pmSign":"蔡伟斌","locked":true},{"date":"26-06-15","amTemp":"24.4","amHumi":"70","amMeasure":"开空调除湿","amAfterTemp":"24.4","amAfterHumi":"57","amSign":"蔡伟斌","pmTemp":"27.8","pmHumi":"77","pmMeasure":"开空调除湿","pmAfterTemp":"27.8","pmAfterHumi":"65","pmSign":"蔡伟斌","locked":true},{"date":"26-06-16","amTemp":"29.4","amHumi":"41","amMeasure":"符合标准","amAfterTemp":"29.4","amAfterHumi":"41","amSign":"蔡伟斌","pmTemp":"29.7","pmHumi":"44","pmMeasure":"符合标准","pmAfterTemp":"29.7","pmAfterHumi":"44","pmSign":"蔡伟斌","locked":true},{"date":"26-06-17","amTemp":"32.0","amHumi":"67","amMeasure":"制冷＋除湿","amAfterTemp":"26.4","amAfterHumi":"45","amSign":"蔡伟斌","pmTemp":"22.6","pmHumi":"65","pmMeasure":"符合标准","pmAfterTemp":"22.6","pmAfterHumi":"65","pmSign":"蔡伟斌","locked":true},{"date":"26-06-18","amTemp":"26.1","amHumi":"52","amMeasure":"符合标准","amAfterTemp":"26.1","amAfterHumi":"52","amSign":"蔡伟斌","pmTemp":"27.6","pmHumi":"75","pmMeasure":"开空调除湿","pmAfterTemp":"27.6","pmAfterHumi":"55","pmSign":"蔡伟斌","locked":true},{"date":"26-06-19","amTemp":"26.7","amHumi":"68","amMeasure":"开空调除湿","amAfterTemp":"26.7","amAfterHumi":"53","amSign":"蔡伟斌","pmTemp":"26.3","pmHumi":"58","pmMeasure":"符合标准","pmAfterTemp":"26.3","pmAfterHumi":"58","pmSign":"蔡伟斌","locked":true},{"date":"26-06-20","amTemp":"25.2","amHumi":"53","amMeasure":"符合标准","amAfterTemp":"25.2","amAfterHumi":"53","amSign":"蔡伟斌","pmTemp":"31.6","pmHumi":"54","pmMeasure":"开空调降温","pmAfterTemp":"25.2","pmAfterHumi":"54","pmSign":"蔡伟斌","locked":true},{"date":"26-06-21","amTemp":"33.4","amHumi":"55","amMeasure":"开空调降温","amAfterTemp":"26.7","amAfterHumi":"55","amSign":"蔡伟斌","pmTemp":"25.6","pmHumi":"45","pmMeasure":"符合标准","pmAfterTemp":"25.6","pmAfterHumi":"45","pmSign":"蔡伟斌","locked":true}],
-    table2: [{"date":"26-05-15","amTemp":"25.0","amHumi":"68","amMeasure":"开空调除湿","amAfterTemp":"25.0","amAfterHumi":"65","amSign":"蔡伟斌","pmTemp":"21.9","pmHumi":"57","pmMeasure":"符合标准","pmAfterTemp":"21.9","pmAfterHumi":"57","pmSign":"蔡伟斌","locked":true},{"date":"26-05-16","amTemp":"31.4","amHumi":"62","amMeasure":"开空调降温","amAfterTemp":"24.6","amAfterHumi":"62","amSign":"蔡伟斌","pmTemp":"30.0","pmHumi":"41","pmMeasure":"符合标准","pmAfterTemp":"30.0","pmAfterHumi":"41","pmSign":"蔡伟斌","locked":true},{"date":"26-05-17","amTemp":"33.1","amHumi":"41","amMeasure":"开空调降温","amAfterTemp":"27.3","amAfterHumi":"41","amSign":"蔡伟斌","pmTemp":"28.6","pmHumi":"65","pmMeasure":"符合标准","pmAfterTemp":"28.6","pmAfterHumi":"65","pmSign":"蔡伟斌","locked":true},{"date":"26-05-18","amTemp":"22.0","amHumi":"66","amMeasure":"开空调除湿","amAfterTemp":"22.0","amAfterHumi":"47","amSign":"蔡伟斌","pmTemp":"23.2","pmHumi":"43","pmMeasure":"符合标准","pmAfterTemp":"23.2","pmAfterHumi":"43","pmSign":"蔡伟斌","locked":true},{"date":"26-05-19","amTemp":"26.1","amHumi":"57","amMeasure":"符合标准","amAfterTemp":"26.1","amAfterHumi":"57","amSign":"蔡伟斌","pmTemp":"22.8","pmHumi":"66","pmMeasure":"开空调除湿","pmAfterTemp":"22.8","pmAfterHumi":"65","pmSign":"蔡伟斌","locked":true},{"date":"26-05-20","amTemp":"30.8","amHumi":"61","amMeasure":"开空调降温","amAfterTemp":"25.2","amAfterHumi":"61","amSign":"蔡伟斌","pmTemp":"34.4","pmHumi":"67","pmMeasure":"制冷＋除湿","pmAfterTemp":"22.3","pmAfterHumi":"53","pmSign":"蔡伟斌","locked":true},{"date":"26-05-21","amTemp":"29.6","amHumi":"44","amMeasure":"符合标准","amAfterTemp":"29.6","amAfterHumi":"44","amSign":"蔡伟斌","pmTemp":"27.6","pmHumi":"71","pmMeasure":"开空调除湿","pmAfterTemp":"27.6","pmAfterHumi":"49","pmSign":"蔡伟斌","locked":true},{"date":"26-05-22","amTemp":"28.5","amHumi":"43","amMeasure":"符合标准","amAfterTemp":"28.5","amAfterHumi":"43","amSign":"蔡伟斌","pmTemp":"32.7","pmHumi":"80","pmMeasure":"制冷＋除湿","pmAfterTemp":"27.7","pmAfterHumi":"52","pmSign":"蔡伟斌","locked":true},{"date":"26-05-23","amTemp":"28.1","amHumi":"40","amMeasure":"符合标准","amAfterTemp":"28.1","amAfterHumi":"40","amSign":"蔡伟斌","pmTemp":"24.9","pmHumi":"42","pmMeasure":"符合标准","pmAfterTemp":"24.9","pmAfterHumi":"42","pmSign":"蔡伟斌","locked":true},{"date":"26-05-24","amTemp":"30.2","amHumi":"57","amMeasure":"开空调降温","amAfterTemp":"26.3","amAfterHumi":"57","amSign":"蔡伟斌","pmTemp":"21.0","pmHumi":"40","pmMeasure":"符合标准","pmAfterTemp":"21.0","pmAfterHumi":"40","pmSign":"蔡伟斌","locked":true},{"date":"26-05-25","amTemp":"34.5","amHumi":"54","amMeasure":"开空调降温","amAfterTemp":"27.4","amAfterHumi":"54","amSign":"蔡伟斌","pmTemp":"32.7","pmHumi":"40","pmMeasure":"开空调降温","pmAfterTemp":"22.8","pmAfterHumi":"40","pmSign":"蔡伟斌","locked":true},{"date":"26-05-26","amTemp":"28.8","amHumi":"52","amMeasure":"符合标准","amAfterTemp":"28.8","amAfterHumi":"52","amSign":"蔡伟斌","pmTemp":"31.1","pmHumi":"46","pmMeasure":"开空调降温","pmAfterTemp":"27.9","pmAfterHumi":"46","pmSign":"蔡伟斌","locked":true},{"date":"26-05-27","amTemp":"24.9","amHumi":"41","amMeasure":"符合标准","amAfterTemp":"24.9","amAfterHumi":"41","amSign":"蔡伟斌","pmTemp":"20.7","pmHumi":"77","pmMeasure":"开空调除湿","pmAfterTemp":"20.7","pmAfterHumi":"57","pmSign":"蔡伟斌","locked":true},{"date":"26-05-28","amTemp":"29.1","amHumi":"68","amMeasure":"开空调除湿","amAfterTemp":"29.1","amAfterHumi":"61","amSign":"蔡伟斌","pmTemp":"25.7","pmHumi":"80","pmMeasure":"开空调除湿","pmAfterTemp":"25.7","pmAfterHumi":"52","pmSign":"蔡伟斌","locked":true},{"date":"26-05-29","amTemp":"27.5","amHumi":"51","amMeasure":"符合标准","amAfterTemp":"27.5","amAfterHumi":"51","amSign":"蔡伟斌","pmTemp":"24.7","pmHumi":"46","pmMeasure":"符合标准","pmAfterTemp":"24.7","pmAfterHumi":"46","pmSign":"蔡伟斌","locked":true},{"date":"26-05-30","amTemp":"30.2","amHumi":"60","amMeasure":"开空调降温","amAfterTemp":"22.2","amAfterHumi":"60","amSign":"蔡伟斌","pmTemp":"30.3","pmHumi":"66","pmMeasure":"制冷＋除湿","pmAfterTemp":"23.4","pmAfterHumi":"57","pmSign":"蔡伟斌","locked":true},{"date":"26-05-31","amTemp":"27.5","amHumi":"80","amMeasure":"开空调除湿","amAfterTemp":"27.5","amAfterHumi":"48","amSign":"蔡伟斌","pmTemp":"32.4","pmHumi":"70","pmMeasure":"制冷＋除湿","pmAfterTemp":"27.1","pmAfterHumi":"63","pmSign":"蔡伟斌","locked":true},{"date":"26-06-01","amTemp":"25.9","amHumi":"50","amMeasure":"符合标准","amAfterTemp":"25.9","amAfterHumi":"50","amSign":"蔡伟斌","pmTemp":"24.3","pmHumi":"77","pmMeasure":"开空调除湿","pmAfterTemp":"24.3","pmAfterHumi":"65","pmSign":"蔡伟斌","locked":true},{"date":"26-06-02","amTemp":"31.2","amHumi":"77","amMeasure":"制冷＋除湿","amAfterTemp":"27.8","amAfterHumi":"47","amSign":"蔡伟斌","pmTemp":"20.3","pmHumi":"74","pmMeasure":"开空调除湿","pmAfterTemp":"20.3","pmAfterHumi":"65","pmSign":"蔡伟斌","locked":true},{"date":"26-06-03","amTemp":"28.9","amHumi":"62","amMeasure":"符合标准","amAfterTemp":"28.9","amAfterHumi":"62","amSign":"蔡伟斌","pmTemp":"20.6","pmHumi":"70","pmMeasure":"开空调除湿","pmAfterTemp":"20.6","pmAfterHumi":"46","pmSign":"蔡伟斌","locked":true},{"date":"26-06-04","amTemp":"34.2","amHumi":"69","amMeasure":"制冷＋除湿","amAfterTemp":"27.0","amAfterHumi":"60","amSign":"蔡伟斌","pmTemp":"28.4","pmHumi":"40","pmMeasure":"符合标准","pmAfterTemp":"28.4","pmAfterHumi":"40","pmSign":"蔡伟斌","locked":true},{"date":"26-06-05","amTemp":"22.1","amHumi":"79","amMeasure":"开空调除湿","amAfterTemp":"22.1","amAfterHumi":"59","amSign":"蔡伟斌","pmTemp":"34.8","pmHumi":"44","pmMeasure":"开空调降温","pmAfterTemp":"22.9","pmAfterHumi":"44","pmSign":"蔡伟斌","locked":true},{"date":"26-06-06","amTemp":"20.4","amHumi":"63","amMeasure":"符合标准","amAfterTemp":"20.4","amAfterHumi":"63","amSign":"蔡伟斌","pmTemp":"21.7","pmHumi":"61","pmMeasure":"符合标准","pmAfterTemp":"21.7","pmAfterHumi":"61","pmSign":"蔡伟斌","locked":true},{"date":"26-06-07","amTemp":"21.9","amHumi":"43","amMeasure":"符合标准","amAfterTemp":"21.9","amAfterHumi":"43","amSign":"蔡伟斌","pmTemp":"33.5","pmHumi":"65","pmMeasure":"开空调降温","pmAfterTemp":"24.6","pmAfterHumi":"65","pmSign":"蔡伟斌","locked":true},{"date":"26-06-08","amTemp":"29.0","amHumi":"80","amMeasure":"开空调除湿","amAfterTemp":"29.0","amAfterHumi":"48","amSign":"蔡伟斌","pmTemp":"23.6","pmHumi":"74","pmMeasure":"开空调除湿","pmAfterTemp":"23.6","pmAfterHumi":"52","pmSign":"蔡伟斌","locked":true},{"date":"26-06-09","amTemp":"34.1","amHumi":"44","amMeasure":"开空调降温","amAfterTemp":"27.3","amAfterHumi":"44","amSign":"蔡伟斌","pmTemp":"30.3","pmHumi":"67","pmMeasure":"制冷＋除湿","pmAfterTemp":"23.0","pmAfterHumi":"62","pmSign":"蔡伟斌","locked":true},{"date":"26-06-10","amTemp":"22.8","amHumi":"71","amMeasure":"开空调除湿","amAfterTemp":"22.8","amAfterHumi":"54","amSign":"蔡伟斌","pmTemp":"29.6","pmHumi":"52","pmMeasure":"符合标准","pmAfterTemp":"29.6","pmAfterHumi":"52","pmSign":"蔡伟斌","locked":true},{"date":"26-06-11","amTemp":"20.1","amHumi":"68","amMeasure":"开空调除湿","amAfterTemp":"20.1","amAfterHumi":"58","amSign":"蔡伟斌","pmTemp":"22.5","pmHumi":"42","pmMeasure":"符合标准","pmAfterTemp":"22.5","pmAfterHumi":"42","pmSign":"蔡伟斌","locked":true},{"date":"26-06-12","amTemp":"22.9","amHumi":"70","amMeasure":"开空调除湿","amAfterTemp":"22.9","amAfterHumi":"49","amSign":"蔡伟斌","pmTemp":"34.3","pmHumi":"45","pmMeasure":"开空调降温","pmAfterTemp":"22.8","pmAfterHumi":"45","pmSign":"蔡伟斌","locked":true},{"date":"26-06-13","amTemp":"27.3","amHumi":"56","amMeasure":"符合标准","amAfterTemp":"27.3","amAfterHumi":"56","amSign":"蔡伟斌","pmTemp":"21.1","pmHumi":"53","pmMeasure":"符合标准","pmAfterTemp":"21.1","pmAfterHumi":"53","pmSign":"蔡伟斌","locked":true},{"date":"26-06-14","amTemp":"24.6","amHumi":"56","amMeasure":"符合标准","amAfterTemp":"24.6","amAfterHumi":"56","amSign":"蔡伟斌","pmTemp":"22.6","pmHumi":"40","pmMeasure":"符合标准","pmAfterTemp":"22.6","pmAfterHumi":"40","pmSign":"蔡伟斌","locked":true},{"date":"26-06-15","amTemp":"24.4","amHumi":"70","amMeasure":"开空调除湿","amAfterTemp":"24.4","amAfterHumi":"57","amSign":"蔡伟斌","pmTemp":"27.8","pmHumi":"77","pmMeasure":"开空调除湿","pmAfterTemp":"27.8","pmAfterHumi":"65","pmSign":"蔡伟斌","locked":true},{"date":"26-06-16","amTemp":"29.4","amHumi":"41","amMeasure":"符合标准","amAfterTemp":"29.4","amAfterHumi":"41","amSign":"蔡伟斌","pmTemp":"29.7","pmHumi":"44","pmMeasure":"符合标准","pmAfterTemp":"29.7","pmAfterHumi":"44","pmSign":"蔡伟斌","locked":true},{"date":"26-06-17","amTemp":"32.0","amHumi":"67","amMeasure":"制冷＋除湿","amAfterTemp":"26.4","amAfterHumi":"45","amSign":"蔡伟斌","pmTemp":"22.6","pmHumi":"65","pmMeasure":"符合标准","pmAfterTemp":"22.6","pmAfterHumi":"65","pmSign":"蔡伟斌","locked":true},{"date":"26-06-18","amTemp":"26.1","amHumi":"52","amMeasure":"符合标准","amAfterTemp":"26.1","amAfterHumi":"52","amSign":"蔡伟斌","pmTemp":"27.6","pmHumi":"75","pmMeasure":"开空调除湿","pmAfterTemp":"27.6","pmAfterHumi":"55","pmSign":"蔡伟斌","locked":true},{"date":"26-06-19","amTemp":"26.7","amHumi":"68","amMeasure":"开空调除湿","amAfterTemp":"26.7","amAfterHumi":"53","amSign":"蔡伟斌","pmTemp":"26.3","pmHumi":"58","pmMeasure":"符合标准","pmAfterTemp":"26.3","pmAfterHumi":"58","pmSign":"蔡伟斌","locked":true},{"date":"26-06-20","amTemp":"25.2","amHumi":"53","amMeasure":"符合标准","amAfterTemp":"25.2","amAfterHumi":"53","amSign":"蔡伟斌","pmTemp":"31.6","pmHumi":"54","pmMeasure":"开空调降温","pmAfterTemp":"25.2","pmAfterHumi":"54","pmSign":"蔡伟斌","locked":true},{"date":"26-06-21","amTemp":"33.4","amHumi":"55","amMeasure":"开空调降温","amAfterTemp":"26.7","amAfterHumi":"55","amSign":"蔡伟斌","pmTemp":"25.6","pmHumi":"45","pmMeasure":"符合标准","pmAfterTemp":"25.6","pmAfterHumi":"45","pmSign":"蔡伟斌","locked":true}],
-    lastAmUpdate: "26-06-21",
-    lastPmUpdate: "26-06-21"
-};
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js "></script>
 
-function getToday() {
-    const d = new Date();
-    return String(d.getFullYear()).slice(-2) + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-}
-
-function getNowTime() {
-    const d = new Date();
-    return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-}
-
-function randTemp(){ return (20 + Math.random()*15).toFixed(1); }
-function randHumi(){ return Math.floor(40 + Math.random()*40); }
-
-function getMeasureAndFixed(t, h){
-    t = parseFloat(t); h = parseInt(h);
-    if(isNaN(t) || isNaN(h)) return { measure:'', ft:'', fh:'' };
-    const tempHigh = t > 30;
-    const humiHigh = h > 65;
-    let measure, ft = t, fh = h;
-    if(tempHigh && humiHigh) {
-        measure = "制冷＋除湿";
-        ft = (22 + Math.random()*6).toFixed(1);
-        fh = Math.floor(45 + Math.random()*21);
-    } else if(tempHigh) {
-        measure = "开空调降温";
-        ft = (22 + Math.random()*6).toFixed(1);
-    } else if(humiHigh) {
-        measure = "开空调除湿";
-        fh = Math.floor(45 + Math.random()*21);
-    } else {
-        measure = "符合标准";
-    }
-    return { measure: measure, ft: String(ft), fh: String(fh) };
-}
-
-function measureClass(m) {
-    return m === '符合标准' ? 'measure-ok' : 'measure-warn';
-}
-
-function loadData() {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if(raw) return JSON.parse(raw);
-    } catch(e) { console.error('加载数据失败', e); }
-    return JSON.parse(JSON.stringify(PRELOAD_DATA));
-}
-
-function saveData(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
-function getTableData(tbodyId) {
-    const all = loadData();
-    return tbodyId === 'tableBody1' ? all.table1 : all.table2;
-}
-
-function setTableData(tbodyId, rows) {
-    const all = loadData();
-    if(tbodyId === 'tableBody1') all.table1 = rows;
-    else all.table2 = rows;
-    saveData(all);
-}
-
-function getLastAmUpdate() { return loadData().lastAmUpdate || ''; }
-function getLastPmUpdate() { return loadData().lastPmUpdate || ''; }
-function setLastAmUpdate(dateStr) { const all = loadData(); all.lastAmUpdate = dateStr; saveData(all); }
-function setLastPmUpdate(dateStr) { const all = loadData(); all.lastPmUpdate = dateStr; saveData(all); }
-
-function rowToData(tr) {
-    const cells = tr.querySelectorAll('td');
-    const getText = (idx) => {
-        const c = cells[idx];
-        if(!c) return '';
-        return c.textContent.replace(/待记录|-/g, '').trim();
-    };
-    return {
-        date: getText(0), amTemp: getText(1), amHumi: getText(2), amMeasure: getText(3),
-        amAfterTemp: getText(4), amAfterHumi: getText(5), amSign: getText(6),
-        pmTemp: getText(7), pmHumi: getText(8), pmMeasure: getText(9),
-        pmAfterTemp: getText(10), pmAfterHumi: getText(11), pmSign: getText(12),
-        locked: tr.dataset.locked === 'true'
-    };
-}
-
-function dataToRowHTML(row, index) {
-    const locked = row.locked;
-    const editAttr = locked ? '' : 'contenteditable="true"';
-    const lockClass = locked ? 'locked' : '';
-    const val = (v) => v ? v : '<span class="empty">待记录</span>';
-    const mVal = (m) => m ? '<span class="'+measureClass(m)+'">'+m+'</span>' : '<span class="empty">-</span>';
-    return `<tr data-index="${index}" data-locked="${locked}">
-        <td class="date-col ${lockClass}" ${editAttr}>${val(row.date)}</td>
-        <td class="am-group temp-col ${lockClass}" ${editAttr}>${val(row.amTemp)}</td>
-        <td class="am-group humi-col ${lockClass}" ${editAttr}>${val(row.amHumi)}</td>
-        <td class="am-group measure-col ${lockClass}" ${editAttr}>${mVal(row.amMeasure)}</td>
-        <td class="am-group temp-col ${lockClass}" ${editAttr}>${val(row.amAfterTemp)}</td>
-        <td class="am-group humi-col ${lockClass}" ${editAttr}>${val(row.amAfterHumi)}</td>
-        <td class="am-group sign-col ${lockClass}" ${editAttr}>${row.amSign || ''}</td>
-        <td class="pm-group temp-col ${lockClass}" ${editAttr}>${val(row.pmTemp)}</td>
-        <td class="pm-group humi-col ${lockClass}" ${editAttr}>${val(row.pmHumi)}</td>
-        <td class="pm-group measure-col ${lockClass}" ${editAttr}>${mVal(row.pmMeasure)}</td>
-        <td class="pm-group temp-col ${lockClass}" ${editAttr}>${val(row.pmAfterTemp)}</td>
-        <td class="pm-group humi-col ${lockClass}" ${editAttr}>${val(row.pmAfterHumi)}</td>
-        <td class="pm-group sign-col ${lockClass}" ${editAttr}>${row.pmSign || ''}</td>
-    </tr>`;
-}
-
-function render(tbodyId) {
-    const tbody = document.getElementById(tbodyId);
-    const rows = getTableData(tbodyId);
-    tbody.innerHTML = rows.map((r,i) => dataToRowHTML(r,i)).join('');
-    attachListeners(tbody);
-}
-
-function syncSave(tbodyId) {
-    const tbody = document.getElementById(tbodyId);
-    const rows = [];
-    tbody.querySelectorAll('tr').forEach(tr => { rows.push(rowToData(tr)); });
-    setTableData(tbodyId, rows);
-}
-
-function createRowData(date) {
-    const amT = randTemp(), amH = randHumi();
-    const amR = getMeasureAndFixed(amT, amH);
-    const pmT = randTemp(), pmH = randHumi();
-    const pmR = getMeasureAndFixed(pmT, pmH);
-    return {
-        date: date, amTemp: amT, amHumi: amH, amMeasure: amR.measure, amAfterTemp: amR.ft, amAfterHumi: amR.fh, amSign: RECORDER_NAME,
-        pmTemp: pmT, pmHumi: pmH, pmMeasure: pmR.measure, pmAfterTemp: pmR.ft, pmAfterHumi: pmR.fh, pmSign: RECORDER_NAME, locked: true
-    };
-}
-
-function addTodayRow(tbodyId) {
-    const today = getToday();
-    const rows = getTableData(tbodyId);
-    if(rows.some(r => r.date === today)) { alert('今天已有记录，如需修改请使用"修改"按钮'); return; }
-    const newRow = { date: today, amTemp:'',amHumi:'',amMeasure:'',amAfterTemp:'',amAfterHumi:'',amSign:'',pmTemp:'',pmHumi:'',pmMeasure:'',pmAfterTemp:'',pmAfterHumi:'',pmSign:'',locked: false };
-    rows.push(newRow);
-    setTableData(tbodyId, rows);
-    render(tbodyId);
-    const tbody = document.getElementById(tbodyId);
-    tbody.lastElementChild?.scrollIntoView({ behavior:'smooth', block:'center' });
-    tbody.lastElementChild.style.background = '#fff3cd';
-    setTimeout(() => { if(tbody.lastElementChild) tbody.lastElementChild.style.background = ''; }, 1000);
-}
-
-function autoFillAm(tbodyId, rowIndex) {
-    const rows = getTableData(tbodyId);
-    const row = rows[rowIndex];
-    if(!row) return;
-    const amT = randTemp(), amH = randHumi();
-    const result = getMeasureAndFixed(amT, amH);
-    row.amTemp = amT; row.amHumi = amH; row.amMeasure = result.measure; row.amAfterTemp = result.ft; row.amAfterHumi = result.fh; row.amSign = RECORDER_NAME;
-    setTableData(tbodyId, rows); render(tbodyId);
-}
-
-function autoFillPm(tbodyId, rowIndex) {
-    const rows = getTableData(tbodyId);
-    const row = rows[rowIndex];
-    if(!row) return;
-    const pmT = randTemp(), pmH = randHumi();
-    const result = getMeasureAndFixed(pmT, pmH);
-    row.pmTemp = pmT; row.pmHumi = pmH; row.pmMeasure = result.measure; row.pmAfterTemp = result.ft; row.pmAfterHumi = result.fh; row.pmSign = RECORDER_NAME;
-    if(row.amTemp && row.pmTemp) row.locked = true;
-    setTableData(tbodyId, rows); render(tbodyId);
-}
-
-function fillMissingDates(tbodyId) {
-    const rows = getTableData(tbodyId);
-    const today = getToday();
-    const dates = [];
-    let d = new Date(2026, 4, 15);
-    const end = new Date();
-    while(d <= end) {
-        dates.push(String(d.getFullYear()).slice(-2) + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'));
-        d.setDate(d.getDate() + 1);
-    }
-    let added = 0;
-    dates.forEach(dateStr => {
-        if(!rows.some(r => r.date === dateStr)) {
-            rows.push(createRowData(dateStr));
-            added++;
+    <script>
+        const STORAGE_KEY = 'herbPriceData';
+        const PRICE_VISIBILITY_KEY = 'priceVisibility';
+        const PRESCRIPTION_HISTORY_KEY = 'prescriptionHistory';
+        let herbsData = [];
+        let isPriceVisible = true;
+        let currentResults = [];
+        let filteredHerbsData = [];
+        
+        // 方剂历史记录管理
+        let prescriptionHistory = [];
+        let currentHistoryIndex = -1;
+        const MAX_HISTORY_SIZE = 10; // 最多保存10个历史记录
+        
+        // OCR配置 - 请替换为你的实际API密钥
+        const OCR_CONFIG = {
+            apiKey: '你的百度API Key',
+            secretKey: '你的百度Secret Key',
+            accessToken: '',
+            tokenExpires: 0
+        };
+        
+        function initializeData() {
+            const storedData = localStorage.getItem(STORAGE_KEY);
+            herbsData = storedData ? JSON.parse(storedData) : [];
+            filteredHerbsData = [...herbsData];
+            
+            const visibilityState = localStorage.getItem(PRICE_VISIBILITY_KEY);
+            isPriceVisible = visibilityState === null ? true : visibilityState === 'true';
+            
+            // 加载历史记录
+            const storedHistory = localStorage.getItem(PRESCRIPTION_HISTORY_KEY);
+            if (storedHistory) {
+                prescriptionHistory = JSON.parse(storedHistory);
+                currentHistoryIndex = prescriptionHistory.length - 1;
+            }
+            
+            updateDataCount();
+            updatePriceToggleState();
+            updateHistoryButtons();
         }
-    });
-    if(added > 0) {
-        rows.sort((a,b) => a.date.localeCompare(b.date));
-        setTableData(tbodyId, rows);
-        render(tbodyId);
-        alert('已整理 ' + added + ' 条记录');
-    } else {
-        alert('所有日期记录完整');
-    }
-}
-
-function updateStatus(tbodyId, status) {
-    const suffix = tbodyId === 'tableBody1' ? '1' : '2';
-    const dot = document.getElementById('dot' + suffix);
-    const txt = document.getElementById('txt' + suffix);
-    if(status === 'done') { dot.className = 'dot on'; txt.textContent = '今日已更新 (' + getToday() + ' ' + getNowTime() + ')'; }
-    else if(status === 'wait') {
-        dot.className = 'dot wait';
-        const now = getNowTime();
-        if(now < '10:00') txt.textContent = '等待10:00自动更新（当前 ' + now + '）';
-        else if(now < '15:00') txt.textContent = '等待15:00自动更新（当前 ' + now + '）';
-        else txt.textContent = '等待明天10:00自动更新（当前 ' + now + '）';
-    }
-}
-
-function scheduleNextUpdate() {
-    const now = new Date();
-    const nowMs = now.getTime();
-    const today10 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 0, 0, 0).getTime();
-    const today15 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 15, 0, 0, 0).getTime();
-    const tomorrow10 = today10 + 24*60*60*1000;
-    let nextUpdate, nextType;
-    if(nowMs < today10) { nextUpdate = today10; nextType = 'am'; }
-    else if(nowMs >= today10 && nowMs < today10 + 5*60*1000) { doAutoUpdate('am'); nextUpdate = today15; nextType = 'pm'; }
-    else if(nowMs < today15) { nextUpdate = today15; nextType = 'pm'; }
-    else if(nowMs >= today15 && nowMs < today15 + 5*60*1000) { doAutoUpdate('pm'); nextUpdate = tomorrow10; nextType = 'am'; }
-    else { nextUpdate = tomorrow10; nextType = 'am'; }
-    const delay = nextUpdate - nowMs;
-    const nextTime = new Date(nextUpdate);
-    console.log('下次' + (nextType==='am'?'上午10:00':'下午15:00') + '更新，还有' + Math.round(delay/1000/60) + '分钟');
-    setTimeout(() => { doAutoUpdate(nextType); scheduleNextUpdate(); }, delay);
-}
-
-function doAutoUpdate(type) {
-    const today = getToday();
-    const lastAm = getLastAmUpdate();
-    const lastPm = getLastPmUpdate();
-    console.log('doAutoUpdate(' + type + ') - today=' + today + ', lastAm=' + lastAm + ', lastPm=' + lastPm);
-    if(type === 'am') {
-        if(lastAm === today) { console.log('上午已更新过，跳过'); return; }
-        ['tableBody1','tableBody2'].forEach(tbodyId => {
-            const rows = getTableData(tbodyId);
-            let todayIdx = rows.findIndex(r => r.date === today);
-            if(todayIdx === -1) {
-                rows.push({ date: today, amTemp:'',amHumi:'',amMeasure:'',amAfterTemp:'',amAfterHumi:'',amSign:'',pmTemp:'',pmHumi:'',pmMeasure:'',pmAfterTemp:'',pmAfterHumi:'',pmSign:'',locked: false });
-                todayIdx = rows.length - 1;
+        
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(herbsData));
+            updateDataCount();
+        }
+        
+        function savePriceVisibility() {
+            localStorage.setItem(PRICE_VISIBILITY_KEY, isPriceVisible);
+        }
+        
+        // 保存历史记录到本地存储
+        function saveHistory() {
+            localStorage.setItem(PRESCRIPTION_HISTORY_KEY, JSON.stringify(prescriptionHistory));
+        }
+        
+        // 添加到历史记录
+        function addToHistory(prescriptionText) {
+            if (!prescriptionText || prescriptionText.trim() === '') return;
+            
+            // 如果当前不是最后一个，删除当前之后的记录
+            if (currentHistoryIndex < prescriptionHistory.length - 1) {
+                prescriptionHistory = prescriptionHistory.slice(0, currentHistoryIndex + 1);
             }
-            autoFillAm(tbodyId, todayIdx);
-        });
-        setLastAmUpdate(today);
-        updateStatus('tableBody1', 'done'); updateStatus('tableBody2', 'done');
-        console.log('上午10:00自动更新完成');
-    } else if(type === 'pm') {
-        if(lastPm === today) { console.log('下午已更新过，跳过'); return; }
-        ['tableBody1','tableBody2'].forEach(tbodyId => {
-            const rows = getTableData(tbodyId);
-            let todayIdx = rows.findIndex(r => r.date === today);
-            if(todayIdx === -1) {
-                rows.push({ date: today, amTemp:'',amHumi:'',amMeasure:'',amAfterTemp:'',amAfterHumi:'',amSign:'',pmTemp:'',pmHumi:'',pmMeasure:'',pmAfterTemp:'',pmAfterHumi:'',pmSign:'',locked: false });
-                todayIdx = rows.length - 1;
+            
+            // 如果与最后一个记录相同，不添加
+            if (prescriptionHistory.length > 0 && 
+                prescriptionHistory[prescriptionHistory.length - 1] === prescriptionText.trim()) {
+                return;
             }
-            autoFillPm(tbodyId, todayIdx);
-        });
-        setLastPmUpdate(today);
-        updateStatus('tableBody1', 'done'); updateStatus('tableBody2', 'done');
-        console.log('下午15:00自动更新完成');
-    }
-}
-
-function forceUnlockToday(tbodyId) {
-    const today = getToday();
-    const rows = getTableData(tbodyId);
-    const idx = rows.findIndex(r => r.date === today);
-    if(idx === -1) { alert('今天还没有记录，请先新增'); return; }
-    if(!rows[idx].locked) { alert('今天的记录尚未锁定，可以直接编辑'); return; }
-    if(!confirm('确定要解锁今天的记录吗？解锁后可以手动修改。')) return;
-    rows[idx].locked = false;
-    setTableData(tbodyId, rows);
-    render(tbodyId);
-    alert('今日记录已解锁，现在可以手动编辑');
-}
-
-function attachListeners(element) {
-    const cells = element.matches?.('td[contenteditable="true"]') ? [element] : element.querySelectorAll('td[contenteditable="true"]');
-    cells.forEach(cell => {
-        cell.addEventListener('input', function() {
-            const tr = this.closest('tr');
-            const cells = Array.from(tr.querySelectorAll('td'));
-            const fieldIdx = cells.indexOf(this);
-            const tbodyId = tr.closest('tbody').id;
-            const emptySpan = this.querySelector('.empty');
-            if(emptySpan) emptySpan.remove();
-            if(fieldIdx === 1 || fieldIdx === 2) {
-                const t = cells[1]?.textContent?.trim();
-                const h = cells[2]?.textContent?.trim();
-                if(t && h && !isNaN(parseFloat(t)) && !isNaN(parseInt(h))) {
-                    const result = getMeasureAndFixed(t, h);
-                    const mCell = cells[3];
-                    if(mCell) { mCell.innerHTML = result.measure ? '<span class="'+measureClass(result.measure)+'">'+result.measure+'</span>' : '<span class="empty">-</span>'; }
-                    if(cells[4]) cells[4].textContent = result.ft;
-                    if(cells[5]) cells[5].textContent = result.fh;
+            
+            prescriptionHistory.push(prescriptionText.trim());
+            
+            // 限制历史记录数量
+            if (prescriptionHistory.length > MAX_HISTORY_SIZE) {
+                prescriptionHistory.shift();
+            }
+            
+            currentHistoryIndex = prescriptionHistory.length - 1;
+            saveHistory();
+            updateHistoryButtons();
+        }
+        
+        // 更新历史记录按钮状态
+        function updateHistoryButtons() {
+            const prevBtn = document.getElementById('prevPrescriptionBtn');
+            const nextBtn = document.getElementById('nextPrescriptionBtn');
+            
+            prevBtn.disabled = currentHistoryIndex <= 0;
+            nextBtn.disabled = currentHistoryIndex >= prescriptionHistory.length - 1;
+        }
+        
+        // 加载上一个方剂
+        function loadPreviousPrescription() {
+            if (currentHistoryIndex > 0) {
+                currentHistoryIndex--;
+                const text = prescriptionHistory[currentHistoryIndex];
+                document.getElementById('prescriptionInput').value = text;
+                updateHistoryButtons();
+                showNotification(`已恢复到第 ${currentHistoryIndex + 1} 个方剂`);
+                // 自动计算
+                calculatePrice(false); // false表示不添加到历史，避免重复
+            }
+        }
+        
+        // 加载下一个方剂
+        function loadNextPrescription() {
+            if (currentHistoryIndex < prescriptionHistory.length - 1) {
+                currentHistoryIndex++;
+                const text = prescriptionHistory[currentHistoryIndex];
+                document.getElementById('prescriptionInput').value = text;
+                updateHistoryButtons();
+                showNotification(`已恢复到第 ${currentHistoryIndex + 1} 个方剂`);
+                // 自动计算
+                calculatePrice(false); // false表示不添加到历史，避免重复
+            }
+        }
+        
+        function updateDataCount() {
+            document.getElementById('dataCount').textContent = filteredHerbsData.length;
+        }
+        
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+        
+        // 显示复制成功提示框
+        function showCopySuccessTips() {
+            const tips = document.getElementById('copySuccessTips');
+            tips.classList.add('show');
+            
+            // 2秒后自动隐藏
+            setTimeout(() => {
+                tips.classList.remove('show');
+            }, 2000);
+        }
+        
+        // 增强的解析函数 - 新增特殊要求提取功能
+        function parsePrescription(text) {
+            const herbs = [];
+            
+            // 1. 基础预处理
+            text = text.replace(/：/g, ' ').replace(/:/g, ' ');
+            text = text.replace(/大片/g, '3');
+            text = text.replace(/枚/g, '');
+            text = text.replace(/后下化开/g, '后下');
+            text = text.replace(/化开/g, '烊化');
+            text = text.replace(/克/g, '');
+            text = text.replace(/g/g, '');
+            text = text.replace(/（/g, '(').replace(/）/g, ')');
+            text = text.replace(/。/g, ',');
+            text = text.replace(/、/g, ',');
+            
+            // 2. 中药别名映射
+            const herbAliases = {
+                '勾藤': '钩藤',
+                '味子': '五味子'
+            };
+            
+            // 3. 特殊要求关键词列表（需要提取的煎法）
+            const specialMethods = [
+                 '另包','先煎', '后下', '烊化', '冲服', '包煎', '另煎', 
+                '打碎', '捣碎', '研末', '布包', '纱布包'
+            ];
+            
+            // 4. 单位转换映射（个/片 -> 克）
+            const unitConversion = {
+                '生姜': 5,    // 生姜每片5g
+                '大枣': 5,    // 大枣每个5g
+                '草果': 4     // 草果每个4g
+            };
+            
+            // 5. 分割成行
+            const lines = text.split(/[\n,，]/);
+            
+            lines.forEach(line => {
+                line = line.trim();
+                if (!line) return;
+                
+                // 6. 提取特殊要求（括号内外的都提取）
+                let specialMethod = '';
+                let cleanedLine = line;
+                
+                // 先处理括号内的特殊要求
+                const bracketMatch = line.match(/\((.*?)\)/);
+                if (bracketMatch) {
+                    const bracketContent = bracketMatch[1];
+                    for (const method of specialMethods) {
+                        if (bracketContent.includes(method)) {
+                            specialMethod = method;
+                            break;
+                        }
+                    }
+                    cleanedLine = line.replace(bracketMatch[0], '').trim();
+                }
+                
+                // 如果没有找到括号内的特殊要求，检查整个行
+                if (!specialMethod) {
+                    for (const method of specialMethods) {
+                        if (line.includes(method)) {
+                            specialMethod = method;
+                            // 从行中移除该特殊要求
+                            cleanedLine = line.replace(method, '').trim();
+                            break;
+                        }
+                    }
+                }
+                
+                // 7. 处理中文数字格式
+                const chineseNumbers = {
+                    '十五': '15', '十六': '16', '十七': '17', '十八': '18', '十九': '19',
+                    '十一': '11', '十二': '12', '十三': '13', '十四': '14',
+                    '二十': '20', '三十': '30', '四十': '40', '五十': '50', '六十': '60',
+                    '一': '1', '二': '2', '三': '3', '四': '4', '五': '5',
+                    '六': '6', '七': '7', '八': '8', '九': '9', '十': '10'
+                };
+                
+                // 8. 先处理有"个"或"片"的情况
+                const unitPattern = /([\u4e00-\u9fa5]{1,4})\s*(\d+(?:\.\d+)?)\s*(个|片)/;
+                const unitMatch = cleanedLine.match(unitPattern);
+                
+                if (unitMatch) {
+                    let herbName = unitMatch[1];
+                    let quantity = parseFloat(unitMatch[2]);
+                    let unit = unitMatch[3];
+                    
+                    // 处理别名
+                    if (herbAliases[herbName]) {
+                        herbName = herbAliases[herbName];
+                    }
+                    
+                    // 单位转换
+                    let weight = 0;
+                    if (unitConversion[herbName]) {
+                        weight = quantity * unitConversion[herbName];
+                    } else {
+                        // 默认处理：个 -> 克，片 -> 克（按5g计算）
+                        weight = quantity * 5;
+                    }
+                    
+                    if (!isNaN(weight) && weight > 0) {
+                        herbs.push({
+                            name: herbName,
+                            weight: weight, // 存储转换后的重量
+                            specialMethod: specialMethod,
+                            originalUnit: `${quantity}${unit}`, // 保存原始单位信息用于显示
+                            convertedWeight: weight // 转换后的重量
+                        });
+                        
+                        cleanedLine = cleanedLine.replace(unitMatch[0], '');
+                    }
+                }
+                
+                // 9. 处理中文数字格式：药材名 + 中文数字
+                for (const [chineseNum, arabicNum] of Object.entries(chineseNumbers)) {
+                    const pattern = new RegExp(`([\\u4e00-\\u9fa5]{2,4})${chineseNum}`, 'g');
+                    let match;
+                    
+                    while ((match = pattern.exec(cleanedLine)) !== null) {
+                        let herbName = match[1];
+                        
+                        // 处理别名
+                        if (herbAliases[herbName]) {
+                            herbName = herbAliases[herbName];
+                        }
+                        
+                        const weight = parseFloat(arabicNum);
+                        if (!isNaN(weight) && weight > 0) {
+                            herbs.push({
+                                name: herbName,
+                                weight: weight,
+                                specialMethod: specialMethod,
+                                convertedWeight: weight
+                            });
+                            
+                            cleanedLine = cleanedLine.replace(match[0], '');
+                        }
+                    }
+                }
+                
+                // 10. 处理阿拉伯数字格式
+                const arabicPattern = /([\u4e00-\u9fa5]{2,4})\s*(\d+(?:\.\d+)?)/g;
+                let arabicMatch;
+                
+                while ((arabicMatch = arabicPattern.exec(cleanedLine)) !== null) {
+                    let herbName = arabicMatch[1];
+                    const weightStr = arabicMatch[2];
+                    
+                    // 检查是否已经添加过
+                    const alreadyAdded = herbs.some(h => h.name === herbName || 
+                        (herbAliases[herbName] && h.name === herbAliases[herbName]));
+                    
+                    if (!alreadyAdded) {
+                        // 处理别名
+                        if (herbAliases[herbName]) {
+                            herbName = herbAliases[herbName];
+                        }
+                        
+                        const weight = parseFloat(weightStr);
+                        if (!isNaN(weight) && weight > 0) {
+                            herbs.push({
+                                name: herbName,
+                                weight: weight,
+                                specialMethod: specialMethod,
+                                convertedWeight: weight
+                            });
+                        }
+                    }
+                }
+            });
+            
+            // 11. 合并相同药材
+            const herbMap = new Map();
+            herbs.forEach(herb => {
+                const key = herb.name;
+                if (herbMap.has(key)) {
+                    const existingHerb = herbMap.get(key);
+                    existingHerb.weight += herb.weight;
+                    existingHerb.convertedWeight += herb.convertedWeight;
+                    // 合并特殊要求
+                    if (herb.specialMethod && existingHerb.specialMethod !== herb.specialMethod) {
+                        existingHerb.specialMethod = existingHerb.specialMethod ? 
+                            `${existingHerb.specialMethod}；${herb.specialMethod}` : herb.specialMethod;
+                    }
+                    // 保留原始单位信息
+                    if (herb.originalUnit) {
+                        if (existingHerb.originalUnit) {
+                            existingHerb.originalUnit += ` + ${herb.originalUnit}`;
+                        } else {
+                            existingHerb.originalUnit = herb.originalUnit;
+                        }
+                    }
+                } else {
+                    herbMap.set(key, {...herb});
+                }
+            });
+            
+            return Array.from(herbMap.values());
+        }
+        
+        function calculatePrice(addToHistoryFlag = true) {
+            const input = document.getElementById('prescriptionInput').value.trim();
+            if (!input) {
+                showNotification('请输入方剂', 'error');
+                return;
+            }
+            
+            // 添加到历史记录（仅在用户主动计算时添加）
+            if (addToHistoryFlag) {
+                addToHistory(input);
+            }
+            
+            const herbs = parsePrescription(input);
+            
+            if (herbs.length === 0) {
+                showNotification('未识别到有效药材信息，请检查格式', 'error');
+                return;
+            }
+            
+            const results = [];
+            let total = 0;
+            let foundCount = 0;
+            
+            herbs.forEach(herb => {
+                // 精确匹配
+                let herbInfo = herbsData.find(item => item.name === herb.name);
+                
+                // 模糊匹配（如果精确匹配失败）
+                if (!herbInfo) {
+                    herbInfo = herbsData.find(item => 
+                        item.name.includes(herb.name) || 
+                        herb.name.includes(item.name)
+                    );
+                }
+                
+                if (herbInfo) {
+                    const price = herbInfo.price * herb.weight;
+                    total += price;
+                    foundCount++;
+                    
+                    results.push({
+                        name: herb.name,
+                        weight: herb.weight,
+                        convertedWeight: herb.convertedWeight || herb.weight,
+                        specialMethod: herb.specialMethod || '',
+                        location: herbInfo.location,
+                        price: price,
+                        hint: herbInfo.hint || '',
+                        isZeroPrice: herbInfo.price === 0,
+                        isFound: true,
+                        unitPrice: herbInfo.price,
+                        originalUnit: herb.originalUnit || '' // 保存原始单位
+                    });
+                } else {
+                    results.push({
+                        name: herb.name,
+                        weight: herb.weight,
+                        convertedWeight: herb.convertedWeight || herb.weight,
+                        specialMethod: herb.specialMethod || '',
+                        location: '无', // 修改：将"未找到"改为"无"
+                        price: 0,
+                        hint: '',
+                        isZeroPrice: true,
+                        isFound: false,
+                        unitPrice: 0,
+                        originalUnit: herb.originalUnit || ''
+                    });
+                }
+            });
+            
+            currentResults = results;
+            displayResults(results, total, foundCount, herbs.length);
+            
+            if (foundCount > 0) {
+                showNotification(`识别${herbs.length}味，匹配${foundCount}味，总价${total.toFixed(2)}元`);
+            } else {
+                showNotification(`识别${herbs.length}味，但未匹配到价格`, 'error');
+            }
+        }
+        
+        function displayResults(results, total, foundCount, totalHerbs) {
+            const tbody = document.getElementById('resultsBody');
+            tbody.innerHTML = '';
+            
+            document.getElementById('herbCountText').textContent = `${totalHerbs}味`;
+            
+            results.forEach((item, index) => {
+                const row = document.createElement('tr');
+                const priceClass = item.isZeroPrice ? 'zero-price' : '';
+                const nameClass = item.isFound ? '' : 'not-found';
+                
+                // 处理特殊要求显示 - 去掉边框样式
+                let specialMethodDisplay = item.specialMethod || '';
+                if (specialMethodDisplay) {
+                    specialMethodDisplay = `<span class="special-method">${specialMethodDisplay}</span>`;
+                }
+                
+                // 显示重量 - 只显示数字（转换后的重量）
+                // 对于生姜、大枣、草果等，显示转换后的克数
+                const weightDisplay = item.convertedWeight || item.weight;
+                
+                row.innerHTML = `
+                    <td class="${nameClass} editable-cell" data-index="${index}" data-field="name">${item.name}</td>
+                    <td class="editable-cell" data-index="${index}" data-field="location">${item.location}</td>
+                    <td class="editable-cell" data-index="${index}" data-field="weight">${weightDisplay}</td>
+                    <td class="editable-cell" data-index="${index}" data-field="specialMethod">${specialMethodDisplay}</td>
+                    <td class="editable-cell ${priceClass}" data-index="${index}" data-field="price">${item.price.toFixed(2)}</td>
+                    <td class="editable-cell" data-index="${index}" data-field="hint">${item.hint || ''}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            document.getElementById('totalAmount').textContent = total.toFixed(2);
+            document.getElementById('resultsContainer').classList.remove('hidden');
+            document.getElementById('emptyResults').classList.add('hidden');
+            
+            updatePriceDisplay();
+            setupInlineEditing();
+        }
+        
+        // 修改：复制药材列表功能 - 只复制前三列，去掉标题和总价
+        function copyHerbsList() {
+            if (currentResults.length === 0) {
+                showNotification('没有药材数据可复制', 'error');
+                return;
+            }
+            
+            let copyText = ""; // 去掉标题行
+            
+            currentResults.forEach(item => {
+                // 只复制前三列：药材、位置、用量
+                // 用量显示转换后的数字
+                const weightDisplay = item.convertedWeight || item.weight;
+                copyText += `${item.name}\t${item.location}\t${weightDisplay}\n`;
+            });
+            
+            // 复制到剪贴板
+            navigator.clipboard.writeText(copyText).then(() => {
+                // 显示复制成功提示框
+                showCopySuccessTips();
+            }).catch(err => {
+                console.error('复制失败:', err);
+                // 备用方法：使用textarea元素
+                const textArea = document.createElement('textarea');
+                textArea.value = copyText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    // 显示复制成功提示框
+                    showCopySuccessTips();
+                } catch (e) {
+                    showNotification('复制失败，请手动复制', 'error');
+                }
+                document.body.removeChild(textArea);
+            });
+        }
+        
+        function setupInlineEditing() {
+            const editableCells = document.querySelectorAll('.editable-cell');
+            
+            editableCells.forEach(cell => {
+                cell.addEventListener('dblclick', (e) => {
+                    if (e.target.classList.contains('editable-cell')) {
+                        startEditing(e.target);
+                    }
+                });
+            });
+        }
+        
+        function startEditing(cell) {
+            const originalContent = cell.textContent;
+            const field = cell.getAttribute('data-field');
+            const index = parseInt(cell.getAttribute('data-index'));
+            
+            // 如果是特殊要求列，需要处理HTML内容
+            let originalValue = originalContent;
+            if (field === 'specialMethod' && cell.querySelector('.special-method')) {
+                originalValue = cell.querySelector('.special-method').textContent;
+            }
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = originalValue;
+            
+            cell.textContent = '';
+            cell.appendChild(input);
+            cell.classList.add('editing');
+            
+            input.focus();
+            input.select();
+            
+            input.addEventListener('blur', () => finishEditing(cell, input, field, index, originalContent, originalValue));
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    input.blur();
+                } else if (e.key === 'Escape') {
+                    cell.innerHTML = originalContent;
+                    cell.classList.remove('editing');
+                }
+            });
+        }
+        
+        function finishEditing(cell, input, field, index, originalContent, originalValue) {
+            const newValue = input.value.trim();
+            
+            if (newValue === originalValue) {
+                cell.innerHTML = originalContent;
+                cell.classList.remove('editing');
+                return;
+            }
+            
+            if (currentResults[index]) {
+                if (field === 'price') {
+                    const newPrice = parseFloat(newValue);
+                    if (!isNaN(newPrice)) {
+                        currentResults[index].price = newPrice;
+                        recalculateTotal();
+                        cell.textContent = newPrice.toFixed(2);
+                    } else {
+                        cell.innerHTML = originalContent;
+                    }
+                } else if (field === 'weight') {
+                    const newWeight = parseFloat(newValue);
+                    if (!isNaN(newWeight) && newWeight > 0) {
+                        currentResults[index].weight = newWeight;
+                        currentResults[index].convertedWeight = newWeight;
+                        if (currentResults[index].unitPrice > 0) {
+                            currentResults[index].price = currentResults[index].unitPrice * newWeight;
+                        }
+                        recalculateTotal();
+                        cell.textContent = newWeight;
+                        const row = cell.closest('tr');
+                        const priceCell = row.cells[4];
+                        priceCell.textContent = currentResults[index].price.toFixed(2);
+                    } else {
+                        cell.innerHTML = originalContent;
+                    }
+                } else if (field === 'name') {
+                    currentResults[index].name = newValue;
+                    cell.textContent = newValue;
+                } else if (field === 'location') {
+                    currentResults[index].location = newValue;
+                    cell.textContent = newValue;
+                } else if (field === 'hint') {
+                    currentResults[index].hint = newValue;
+                    cell.textContent = newValue;
+                } else if (field === 'specialMethod') {
+                    currentResults[index].specialMethod = newValue;
+                    if (newValue) {
+                        cell.innerHTML = `<span class="special-method">${newValue}</span>`;
+                    } else {
+                        cell.textContent = '';
+                    }
                 }
             }
-            if(fieldIdx === 7 || fieldIdx === 8) {
-                const t = cells[7]?.textContent?.trim();
-                const h = cells[8]?.textContent?.trim();
-                if(t && h && !isNaN(parseFloat(t)) && !isNaN(parseInt(h))) {
-                    const result = getMeasureAndFixed(t, h);
-                    const mCell = cells[9];
-                    if(mCell) { mCell.innerHTML = result.measure ? '<span class="'+measureClass(result.measure)+'">'+result.measure+'</span>' : '<span class="empty">-</span>'; }
-                    if(cells[10]) cells[10].textContent = result.ft;
-                    if(cells[11]) cells[11].textContent = result.fh;
-                }
+            
+            cell.classList.remove('editing');
+            showNotification('已更新');
+        }
+        
+        function recalculateTotal() {
+            let total = 0;
+            currentResults.forEach(item => {
+                total += item.price || 0;
+            });
+            document.getElementById('totalAmount').textContent = total.toFixed(2);
+        }
+        
+        function updatePriceDisplay() {
+            const priceHeaders = document.querySelectorAll('.price-header');
+            const priceValues = document.querySelectorAll('td:nth-child(5)');
+            const priceToggles = document.querySelectorAll('.price-toggle');
+            
+            if (isPriceVisible) {
+                priceHeaders.forEach(header => header.style.display = 'table-cell');
+                priceValues.forEach(value => {
+                    value.style.display = 'table-cell';
+                });
+                priceToggles.forEach(toggle => {
+                    toggle.classList.remove('active');
+                });
+            } else {
+                priceHeaders.forEach(header => header.style.display = 'none');
+                priceValues.forEach(value => {
+                    value.style.display = 'none';
+                });
+                priceToggles.forEach(toggle => {
+                    toggle.classList.add('active');
+                });
             }
-            syncSave(tbodyId);
-        });
-        cell.addEventListener('blur', function() { const tr = this.closest('tr'); const tbodyId = tr.closest('tbody').id; syncSave(tbodyId); });
-        cell.addEventListener('keydown', function(e) {
-            if(e.key === 'Enter') { e.preventDefault(); const all = Array.from(document.querySelectorAll('td[contenteditable="true"]')); const idx = all.indexOf(this); if(idx >= 0 && idx < all.length - 1) { all[idx+1].focus(); } }
-        });
-    });
-}
-
-const btn = document.getElementById('switchBtn');
-const t1 = document.getElementById('table1-container');
-const t2 = document.getElementById('table2-container');
-let s = true;
-btn.onclick = () => { if(s) { t1.style.display='none'; t2.style.display='block'; } else { t1.style.display='block'; t2.style.display='none'; } s = !s; };
-
-window.onload = () => {
-    const data = loadData();
-    render('tableBody1'); render('tableBody2');
-    setTimeout(() => { const t1 = document.getElementById('tableBody1'); if(t1.lastElementChild) t1.lastElementChild.scrollIntoView({ behavior:'smooth', block:'center' }); }, 300);
-    scheduleNextUpdate();
-};
-</script>
+        }
+        
+        function updatePriceToggleState() {
+            const priceToggles = document.querySelectorAll('.price-toggle');
+            priceToggles.forEach(toggle => {
+                if (isPriceVisible) {
+                    toggle.classList.remove('active');
+                } else {
+                    toggle.classList.add('active');
+                }
+            });
+        }
+        
+        function togglePriceVisibility() {
+            isPriceVisible = !isPriceVisible;
+            savePriceVisibility();
+            updatePriceToggleState();
+            updatePriceDisplay();
+            
+            showNotification(isPriceVisible ? '已显示价格' : '已隐藏价格', 'info');
+        }
+        
+        function clearInput() {
+            document.getElementById('prescriptionInput').value = '';
+            document.getElementById('resultsBody').innerHTML = '';
+            document.getElementById('totalAmount').textContent = '0.00';
+            document.getElementById('resultsContainer').classList.add('hidden');
+            document.getElementById('emptyResults').classList.remove('hidden');
+            document.getElementById('herbCountText').textContent = '0味';
+            currentResults = [];
+            showNotification('已清空输入和计算结果');
+        }
+        
+        // 获取百度OCR Access Token
+        async function getOcrAccessToken() {
+            // 检查token是否过期
+            if (OCR_CONFIG.accessToken && Date.now() < OCR_CONFIG.tokenExpires) {
+                return OCR_CONFIG.accessToken;
+            }
+            
+            try {
+                const response = await fetch(`https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id= ${OCR_CONFIG.apiKey}&client_secret=${OCR_CONFIG.secretKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.access_token) {
+                    OCR_CONFIG.accessToken = data.access_token;
+                    // token有效期为30天，这里设置为29天
+                    OCR_CONFIG.tokenExpires = Date.now() + (29 * 24 * 60 * 60 * 1000);
+                    return data.access_token;
+                } else {
+                    throw new Error('获取OCR Token失败: ' + (data.error_description || '未知错误'));
+                }
+            } catch (error) {
+                console.error('获取OCR Token出错:', error);
+                throw error;
+            }
+        }
+        
+        // 调用百度OCR识别图片
+        async function recognizeImageWithOCR(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = async function(e) {
+                    try {
+                        // 获取base64编码
+                        const base64Data = e.target.result.split(',')[1];
+                        
+                        // 获取access token
+                        const token = await getOcrAccessToken();
+                        
+                        // 调用通用文字识别接口
+                        const response = await fetch(`https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic?access_token= ${token}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: `image=${encodeURIComponent(base64Data)}&language_type=CHN_ENG`
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.words_result) {
+                            // 拼接识别结果
+                            let text = '';
+                            data.words_result.forEach(item => {
+                                text += item.words + '\n';
+                            });
+                            resolve(text.trim());
+                        } else {
+                            reject(new Error('OCR识别失败: ' + (data.error_msg || '未知错误')));
+                        }
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                reader.onerror = function() {
+                    reject(new Error('读取图片文件失败'));
+                };
+                
+                // 以base64格式读取文件
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // 修改后的图片上传处理函数
+        async function handleImageUpload(file) {
+            if (!file) return;
+            
+            try {
+                showNotification('正在识别图片中的文字，请稍候...', 'info');
+                
+                // 调用OCR识别
+                const text = await recognizeImageWithOCR(file);
+                
+                if (text) {
+                    document.getElementById('prescriptionInput').value = text;
+                    showNotification('图片识别完成，已填充识别结果');
+                } else {
+                    showNotification('未识别到任何文字', 'error');
+                }
+            } catch (error) {
+                console.error('OCR识别出错:', error);
+                showNotification(`识别失败: ${error.message}，请手动输入方剂`, 'error');
+            }
+        }
+        
+        function renderPriceList(filter = '') {
+            const container = document.getElementById('priceList');
+            container.innerHTML = '';
+            
+            filteredHerbsData = herbsData.filter(item => 
+                item.name.toLowerCase().includes(filter.toLowerCase())
+            );
+            
+            if (filteredHerbsData.length === 0) {
+                container.innerHTML = '<div class="price-item" style="text-align:center;color:#888;padding:20px;grid-column:1/-1;">无数据，请上传Excel</div>';
+                updateDataCount();
+                return;
+            }
+            
+            filteredHerbsData.forEach((herb, index) => {
+                const item = document.createElement('div');
+                const priceClass = herb.price === 0 ? 'zero-price' : '';
+                item.className = 'price-item';
+                item.setAttribute('data-original-index', herbsData.findIndex(h => h.name === herb.name && h.location === herb.location && h.price === herb.price));
+                item.innerHTML = `
+                    <div class="editable-cell" data-index="${index}" data-field="name">${herb.name}</div>
+                    <div class="editable-cell" data-index="${index}" data-field="weight">-</div>
+                    <div class="editable-cell ${priceClass}" data-index="${index}" data-field="price">${herb.price.toFixed(2)}</div>
+                    <div class="editable-cell" data-index="${index}" data-field="location">${herb.location}</div>
+                    <div class="editable-cell" data-index="${index}" data-field="hint">${herb.hint || ''}</div>
+                    <div>
+                        <button class="delete-btn" data-index="${index}" data-original-index="${herbsData.findIndex(h => h.name === herb.name && h.location === herb.location && h.price === herb.price)}"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+            
+            updateDataCount();
+            
+            setupAdminInlineEditing();
+            
+            container.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const originalIndex = parseInt(e.currentTarget.getAttribute('data-original-index'));
+                    deleteHerb(originalIndex);
+                });
+            });
+        }
+        
+        function setupAdminInlineEditing() {
+            const container = document.getElementById('priceList');
+            
+            container.addEventListener('dblclick', (e) => {
+                if (e.target.classList.contains('editable-cell')) {
+                    startAdminEditing(e.target);
+                }
+            });
+        }
+        
+        function startAdminEditing(cell) {
+            const originalContent = cell.textContent;
+            const field = cell.getAttribute('data-field');
+            const index = parseInt(cell.getAttribute('data-index'));
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = originalContent;
+            
+            cell.textContent = '';
+            cell.appendChild(input);
+            cell.classList.add('editing');
+            
+            input.focus();
+            input.select();
+            
+            input.addEventListener('blur', () => finishAdminEditing(cell, input, field, index, originalContent));
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    input.blur();
+                } else if (e.key === 'Escape') {
+                    cell.textContent = originalContent;
+                    cell.classList.remove('editing');
+                }
+            });
+        }
+        
+        function finishAdminEditing(cell, input, field, index, originalContent) {
+            const newValue = input.value.trim();
+            const item = cell.closest('.price-item');
+            const originalIndex = parseInt(item.getAttribute('data-original-index'));
+            
+            if (!newValue || newValue === originalContent) {
+                cell.textContent = originalContent;
+                cell.classList.remove('editing');
+                return;
+            }
+            
+            if (originalIndex === -1 || !herbsData[originalIndex]) {
+                cell.textContent = originalContent;
+                cell.classList.remove('editing');
+                showNotification('未找到对应药材数据', 'error');
+                return;
+            }
+            
+            let success = false;
+            let displayValue = newValue;
+            
+            if (field === 'name') {
+                herbsData[originalIndex].name = newValue;
+                filteredHerbsData[index].name = newValue;
+                success = true;
+            } else if (field === 'location') {
+                herbsData[originalIndex].location = newValue;
+                filteredHerbsData[index].location = newValue;
+                success = true;
+            } else if (field === 'price') {
+                const newPrice = parseFloat(newValue);
+                if (!isNaN(newPrice) && newPrice >= 0) {
+                    herbsData[originalIndex].price = newPrice;
+                    filteredHerbsData[index].price = newPrice;
+                    displayValue = newPrice.toFixed(2);
+                    success = true;
+                } else {
+                    displayValue = originalContent;
+                }
+            } else if (field === 'hint') {
+                herbsData[originalIndex].hint = newValue;
+                filteredHerbsData[index].hint = newValue;
+                success = true;
+            } else if (field === 'weight') {
+                // 后台管理中的重量列通常是占位符，不需要修改
+                displayValue = originalContent;
+                success = true;
+            }
+            
+            if (success) {
+                saveData();
+                cell.textContent = displayValue;
+                
+                if (field === 'price') {
+                    const newPrice = parseFloat(newValue);
+                    if (newPrice === 0) {
+                        cell.classList.add('zero-price');
+                    } else {
+                        cell.classList.remove('zero-price');
+                    }
+                }
+                
+                showNotification('已更新');
+            } else {
+                cell.textContent = originalContent;
+            }
+            
+            cell.classList.remove('editing');
+        }
+        
+        function deleteHerb(originalIndex) {
+            if (originalIndex === -1 || !herbsData[originalIndex]) {
+                showNotification('未找到对应药材数据', 'error');
+                return;
+            }
+            
+            if (confirm(`删除 ${herbsData[originalIndex].name}？`)) {
+                herbsData.splice(originalIndex, 1);
+                saveData();
+                renderPriceList(document.getElementById('searchHerb').value);
+                showNotification('药材已删除');
+            }
+        }
+        
+        function handleBulkUpload() {
+            document.getElementById('priceFileUpload').click();
+        }
+        
+        function handleImageBtnClick() {
+            document.getElementById('imageUpload').click();
+        }
+        
+        function processUploadedFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const progressDiv = document.getElementById('uploadProgress');
+            progressDiv.classList.remove('hidden');
+            progressDiv.innerHTML = '正在读取Excel文件...';
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    progressDiv.innerHTML = '正在解析工作表...';
+                    
+                    const workbook = XLSX.read(data, { 
+                        type: 'array',
+                        cellDates: false,
+                        cellNF: false,
+                        cellText: true,
+                        raw: false
+                    });
+                    
+                    const sheetNames = workbook.SheetNames;
+                    progressDiv.innerHTML = `找到 ${sheetNames.length} 个工作表，处理第一个工作表...`;
+                    
+                    const firstSheet = workbook.Sheets[sheetNames[0]];
+                    
+                    const sheetData = XLSX.utils.sheet_to_json(firstSheet, { 
+                        header: 1,
+                        defval: '',
+                        blankrows: false
+                    });
+                    
+                    progressDiv.innerHTML = `找到 ${sheetData.length} 行数据，正在处理...`;
+                    
+                    const newHerbsData = [];
+                    let processedCount = 0;
+                    let skippedCount = 0;
+                    let zeroPriceCount = 0;
+                    
+                    for (let i = 0; i < sheetData.length; i++) {
+                        const row = sheetData[i];
+                        
+                        if (!Array.isArray(row) || row.length === 0) {
+                            skippedCount++;
+                            continue;
+                        }
+                        
+                        const herbName = row[0] !== undefined && row[0] !== null ? String(row[0]).trim() : '';
+                        const location = row[1] !== undefined && row[1] !== null ? String(row[1]).trim() : '';
+                        const hint = row[4] !== undefined && row[4] !== null ? String(row[4]).trim() : '';
+                        const priceCell = row[10] !== undefined ? row[10] : '';
+                        
+                        if (!herbName || herbName === '' || herbName === 'undefined' || herbName.toLowerCase() === 'null') {
+                            skippedCount++;
+                            continue;
+                        }
+                        
+                        let price = 0;
+                        
+                        if (priceCell === '' || priceCell === null || priceCell === undefined) {
+                            price = 0;
+                            zeroPriceCount++;
+                        } else {
+                            price = parseFloat(priceCell);
+                            if (isNaN(price)) {
+                                const priceStr = String(priceCell);
+                                const priceMatch = priceStr.match(/[-+]?\d*\.?\d+/);
+                                if (priceMatch) {
+                                    price = parseFloat(priceMatch[0]);
+                                }
+                            }
+                            
+                            if (isNaN(price)) {
+                                price = 0;
+                            }
+                            
+                            if (price === 0) zeroPriceCount++;
+                        }
+                        
+                        newHerbsData.push({
+                            name: herbName,
+                            location: location,
+                            price: price,
+                            hint: hint
+                        });
+                        
+                        processedCount++;
+                        
+                        if (processedCount % 200 === 0) {
+                            progressDiv.innerHTML = `已处理 ${processedCount} 条数据...`;
+                        }
+                    }
+                    
+                    progressDiv.innerHTML = `处理完成！有效数据: ${processedCount} 条，跳过: ${skippedCount} 条，零价格: ${zeroPriceCount} 条`;
+                    
+                    if (newHerbsData.length === 0) {
+                        showNotification('未在Excel文件中找到有效数据', 'error');
+                        progressDiv.classList.add('hidden');
+                        return;
+                    }
+                    
+                    herbsData = newHerbsData;
+                    saveData();
+                    
+                    setTimeout(() => {
+                        renderPriceList();
+                        progressDiv.classList.add('hidden');
+                        showNotification(`成功上传 ${newHerbsData.length} 条药材记录（其中 ${zeroPriceCount} 条价格为0）`, 'success');
+                    }, 800);
+                    
+                    event.target.value = '';
+                    
+                } catch (error) {
+                    console.error('处理Excel文件时出错:', error);
+                    progressDiv.classList.add('hidden');
+                    showNotification(`处理文件出错: ${error.message}`, 'error');
+                }
+            };
+            
+            reader.onerror = function() {
+                progressDiv.classList.add('hidden');
+                showNotification('读取文件失败', 'error');
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function clearAllData() {
+            if (herbsData.length === 0) {
+                showNotification('无数据可清空', 'info');
+                return;
+            }
+            
+            if (confirm(`清空${herbsData.length}条记录？`)) {
+                herbsData = [];
+                filteredHerbsData = [];
+                saveData();
+                renderPriceList();
+                showNotification('已清空所有数据');
+            }
+        }
+        
+        // 新增：回车键计算功能
+        function setupEnterKeyCalculation() {
+            const prescriptionInput = document.getElementById('prescriptionInput');
+            
+            prescriptionInput.addEventListener('keydown', (e) => {
+                // 检查是否按下回车键，且没有按着Ctrl或Shift
+                if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey) {
+                    e.preventDefault(); // 防止在textarea中换行
+                    calculatePrice();
+                }
+            });
+        }
+        
+        function initApp() {
+            initializeData();
+            
+            // 添加事件监听器
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.getAttribute('data-tab');
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById(tabId).classList.add('active');
+                    if (tabId === 'admin') renderPriceList();
+                });
+            });
+            
+            document.getElementById('calculateBtn').addEventListener('click', () => calculatePrice(true));
+            document.getElementById('clearBtn').addEventListener('click', clearInput);
+            
+            // 新增：上个/下个方剂按钮事件
+            document.getElementById('prevPrescriptionBtn').addEventListener('click', loadPreviousPrescription);
+            document.getElementById('nextPrescriptionBtn').addEventListener('click', loadNextPrescription);
+            
+            document.getElementById('uploadImageBtn').addEventListener('click', handleImageBtnClick);
+            document.getElementById('imageUpload').addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleImageUpload(e.target.files[0]);
+                }
+            });
+            document.getElementById('addHerbBtn').addEventListener('click', () => {
+                const newHerb = {
+                    name: '新药材',
+                    location: '',
+                    price: 0,
+                    hint: ''
+                };
+                herbsData.push(newHerb);
+                filteredHerbsData.push(newHerb);
+                saveData();
+                renderPriceList();
+                showNotification('已添加新药材，请双击修改');
+            });
+            document.getElementById('uploadPriceBtn').addEventListener('click', handleBulkUpload);
+            document.getElementById('priceFileUpload').addEventListener('change', processUploadedFile);
+            document.getElementById('clearAllBtn').addEventListener('click', clearAllData);
+            
+            document.getElementById('priceToggle').addEventListener('click', togglePriceVisibility);
+            
+            document.getElementById('searchHerb').addEventListener('input', (e) => {
+                renderPriceList(e.target.value);
+            });
+            
+            // 新增：复制按钮事件
+            document.getElementById('copyHerbsBtn').addEventListener('click', copyHerbsList);
+            
+            // 初始化回车键计算功能
+            setupEnterKeyCalculation();
+            
+            renderPriceList();
+            document.getElementById('resultsContainer').classList.add('hidden');
+            document.getElementById('emptyResults').classList.remove('hidden');
+            
+            updatePriceDisplay();
+        }
+        
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
 </body>
 </html>
