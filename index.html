@@ -649,6 +649,7 @@
         }
     </style>
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
     <div class="container">
@@ -854,7 +855,7 @@
             };
             
             // 7. 改进的分割方式 - 按逗号、分号、句号分割
-            let segments = text.split(/[,，;；]/);
+            let segments = text.split(/[,，;；\n\r]/);
             
             // 清理和处理每个片段
             segments = segments.map(seg => seg.trim()).filter(seg => seg.length > 0);
@@ -875,6 +876,7 @@
                 
                 // 9. 关键修复：为每个片段单独提取特殊要求
                 let specialMethod = '';
+                let specialPos = Infinity;   // 特殊要求出现的位置，只分配给其前面的药材
                 let cleanedSegment = segment;
                 
                 // 先处理括号内的特殊要求
@@ -888,6 +890,7 @@
                             break;
                         }
                     }
+                    specialPos = bracketMatch.index;
                     // 移除括号及内容
                     cleanedSegment = segment.replace(bracketMatch[0], '').trim();
                 }
@@ -930,7 +933,7 @@
                             herbs.push({
                                 name: herbName,
                                 weight: weight,
-                                specialMethod: specialMethod, // 只使用当前片段的特殊要求
+                                specialMethod: (match.index + match[0].length <= specialPos) ? specialMethod : '',
                                 originalUnit: unit,
                                 converted: unit !== ''
                             });
@@ -971,7 +974,7 @@
                             herbs.push({
                                 name: herbName,
                                 weight: weight,
-                                specialMethod: specialMethod, // 只使用当前片段的特殊要求
+                                specialMethod: (arabicMatch.index + arabicMatch[0].length <= specialPos) ? specialMethod : '',
                                 originalUnit: unit,
                                 converted: unit !== ''
                             });
