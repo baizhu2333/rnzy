@@ -444,6 +444,13 @@
             to { opacity: 0; }
         }
         
+        .btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
         .hidden {
             display: none;
         }
@@ -649,6 +656,7 @@
     </style>
 <base target="_blank">
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
     <div class="container">
@@ -668,6 +676,12 @@
                         <div class="action-buttons">
                             <button class="btn btn-primary" id="calculateBtn">
                                 <i class="fas fa-calculator"></i> 计算价格
+                            </button>
+                            <button class="btn btn-outline" id="prevFormulaBtn">
+                                <i class="fas fa-chevron-left"></i> 上一个方剂
+                            </button>
+                            <button class="btn btn-outline" id="nextFormulaBtn">
+                                下一个方剂 <i class="fas fa-chevron-right"></i>
                             </button>
                             <button class="btn btn-secondary" id="clearBtn">
                                 <i class="fas fa-broom"></i> 清空
@@ -769,6 +783,8 @@
         let isPriceVisible = true;
         let currentResults = [];
         let filteredHerbsData = [];
+        let formulaHistory = [];
+        let formulaHistoryIndex = -1;
         
         // 格式化重量：整数直接显示（16），非整数保留小数（16.5）
         function formatWeight(num) {
@@ -1018,6 +1034,52 @@
             return Array.from(herbMap.values());
         }
         
+        function pushFormulaHistory(inputText, results, total, foundCount, totalHerbs, unitConvertedCount) {
+            formulaHistory = formulaHistory.slice(0, formulaHistoryIndex + 1);
+            formulaHistory.push({
+                inputText: inputText,
+                results: JSON.parse(JSON.stringify(results)),
+                total: total,
+                foundCount: foundCount,
+                totalHerbs: totalHerbs,
+                unitConvertedCount: unitConvertedCount
+            });
+            formulaHistoryIndex = formulaHistory.length - 1;
+            updateFormulaNavButtons();
+        }
+
+        function restoreFormulaState(entry) {
+            document.getElementById('prescriptionInput').value = entry.inputText;
+            currentResults = JSON.parse(JSON.stringify(entry.results));
+            displayResults(currentResults, entry.total, entry.foundCount, entry.totalHerbs, entry.unitConvertedCount);
+            updateFormulaNavButtons();
+        }
+
+        function goPrevFormula() {
+            if (formulaHistoryIndex <= 0) {
+                showNotification('没有更早的方剂记录', 'info');
+                return;
+            }
+            formulaHistoryIndex--;
+            restoreFormulaState(formulaHistory[formulaHistoryIndex]);
+        }
+
+        function goNextFormula() {
+            if (formulaHistoryIndex >= formulaHistory.length - 1) {
+                showNotification('没有更新的方剂记录', 'info');
+                return;
+            }
+            formulaHistoryIndex++;
+            restoreFormulaState(formulaHistory[formulaHistoryIndex]);
+        }
+
+        function updateFormulaNavButtons() {
+            const prevBtn = document.getElementById('prevFormulaBtn');
+            const nextBtn = document.getElementById('nextFormulaBtn');
+            if (prevBtn) prevBtn.disabled = formulaHistoryIndex <= 0;
+            if (nextBtn) nextBtn.disabled = formulaHistoryIndex >= formulaHistory.length - 1;
+        }
+
         function calculatePrice() {
             const input = document.getElementById('prescriptionInput').value.trim();
             if (!input) {
@@ -1074,6 +1136,7 @@
             });
             currentResults = results;
             displayResults(results, total, foundCount, herbs.length, unitConvertedCount);
+            pushFormulaHistory(input, results, total, foundCount, herbs.length, unitConvertedCount);
             if (foundCount > 0) {
                 let message = `识别${herbs.length}味，匹配${foundCount}味，总价${total.toFixed(2)}元`;
                 if (unitConvertedCount > 0) message += `（${unitConvertedCount}味已进行单位转换）`;
@@ -1542,6 +1605,9 @@
                 });
             });
             document.getElementById('calculateBtn').addEventListener('click', calculatePrice);
+            document.getElementById('prevFormulaBtn').addEventListener('click', goPrevFormula);
+            document.getElementById('nextFormulaBtn').addEventListener('click', goNextFormula);
+            updateFormulaNavButtons();
             document.getElementById('clearBtn').addEventListener('click', clearInput);
             document.getElementById('addHerbBtn').addEventListener('click', () => {
                 const newHerb = { name: '新药材', location: '', price: 0, hint: '' };
