@@ -444,13 +444,6 @@
             to { opacity: 0; }
         }
         
-        .btn:disabled {
-            opacity: 0.45;
-            cursor: not-allowed;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-
         .hidden {
             display: none;
         }
@@ -547,7 +540,7 @@
             display: inline-block;
         }
         
-        /* 特殊要求样式 - 去掉斜体 */
+        /* 特殊要求样式 - 修改：去掉边框 */
         .special-method {
             color: #e65100;
             font-size: 12px;
@@ -555,8 +548,63 @@
             padding: 2px 4px;
             border-radius: 3px;
             border: none;
+            font-style: italic;
         }
         
+        
+        /* 方剂历史导航样式 */
+        .history-nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background-color: #f0f9f8;
+            border: 1px solid #e0f2f1;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .history-btn {
+            background: none;
+            border: 1px solid #b2dfdb;
+            color: #4a8c87;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .history-btn:hover:not(:disabled) {
+            background-color: #80cbc4;
+            color: white;
+            border-color: #80cbc4;
+        }
+        
+        .history-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .history-position {
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a8c87;
+            min-width: 70px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .history-hint {
+            font-size: 12px;
+            color: #7aa9a5;
+            margin-left: auto;
+            white-space: nowrap;
+        }
         
         /* 移动端优化 */
         @media (max-width: 768px) {
@@ -656,7 +704,6 @@
     </style>
 <base target="_blank">
 <base target="_blank">
-<base target="_blank">
 </head>
 <body>
     <div class="container">
@@ -677,12 +724,6 @@
                             <button class="btn btn-primary" id="calculateBtn">
                                 <i class="fas fa-calculator"></i> 计算价格
                             </button>
-                            <button class="btn btn-outline" id="prevFormulaBtn">
-                                <i class="fas fa-chevron-left"></i> 上一个方剂
-                            </button>
-                            <button class="btn btn-outline" id="nextFormulaBtn">
-                                下一个方剂 <i class="fas fa-chevron-right"></i>
-                            </button>
                             <button class="btn btn-secondary" id="clearBtn">
                                 <i class="fas fa-broom"></i> 清空
                             </button>
@@ -700,6 +741,16 @@
                             </div>
                         </div>
                         <div id="resultsContainer" class="hidden">
+                            <div class="history-nav">
+                                <button class="history-btn" id="prevHistoryBtn" title="上一个方剂">
+                                    <i class="fas fa-chevron-left"></i> 上一个
+                                </button>
+                                <span class="history-position" id="historyPosition">暂无历史</span>
+                                <button class="history-btn" id="nextHistoryBtn" title="下一个方剂">
+                                    下一个 <i class="fas fa-chevron-right"></i>
+                                </button>
+                                <span class="history-hint">历史方剂自动保存，关闭浏览器后仍在</span>
+                            </div>
                             <table class="results-table" id="resultsTable">
                                 <thead>
                                     <tr>
@@ -779,12 +830,14 @@
     <script>
         const STORAGE_KEY = 'herbPriceData';
         const PRICE_VISIBILITY_KEY = 'priceVisibility';
+        const HISTORY_KEY = 'prescriptionHistory';
+        const MAX_HISTORY = 100;
         let herbsData = [];
         let isPriceVisible = true;
         let currentResults = [];
         let filteredHerbsData = [];
-        let formulaHistory = [];
-        let formulaHistoryIndex = -1;
+        let historyEntries = [];
+        let currentHistoryIndex = -1;
         
         // 格式化重量：整数直接显示（16），非整数保留小数（16.5）
         function formatWeight(num) {
@@ -801,6 +854,8 @@
             
             const visibilityState = localStorage.getItem(PRICE_VISIBILITY_KEY);
             isPriceVisible = visibilityState === null ? true : visibilityState === 'true';
+            
+            loadHistory();
             
             updateDataCount();
             updatePriceToggleState();
@@ -827,7 +882,7 @@
             setTimeout(() => notification.remove(), 3000);
         }
         
-        // 修复后的解析函数，恢复高容错正则，同时保留后下只归属最近一味的bug修复
+        // 修复后的解析函数 - 解决特殊要求传播问题
         function parsePrescription(text) {
             const herbs = [];
             
@@ -836,6 +891,7 @@
             
             // 2. 基础预处理（保持原有逻辑）
             text = text.replace(/：/g, ' ').replace(/:/g, ' ');
+            // 保留单位标记，不删除"个"、"枚"、"片"等单位
             text = text.replace(/后下化开/g, '后下');
             text = text.replace(/化开/g, '烊化');
             text = text.replace(/克/g, '');
@@ -863,17 +919,20 @@
             
             // 6. 单位转换规则（只保留需要的）
             const unitConversionRules = {
-                '个': 5,
-                '枚': 5,
-                '片': 5
+                '个': 5,    // 大枣、生姜等，1个=5g
+                '枚': 5,    // 同"个"
+                '片': 5     // 生姜片等，1片=5g
             };
             
             // 7. 改进的分割方式 - 按逗号、分号、句号分割
             let segments = text.split(/[,，;；\n\r]/);
+            
+            // 清理和处理每个片段
             segments = segments.map(seg => seg.trim()).filter(seg => seg.length > 0);
             
-            // 8. 处理每个片段
+            // 8. 处理每个片段 - 关键修复：每个片段独立处理特殊要求
             segments.forEach(segment => {
+                // 跳过明显不是药材的片段
                 if (segment.includes('明天早上煎') || 
                     segment.includes('一天') ||
                     segment.includes('下午') ||
@@ -881,17 +940,20 @@
                     segment.includes('剂') ||
                     segment.includes('喝') ||
                     segment.includes('来取') ||
-                    segment.match(/^[0-9]/)) {
+                    segment.match(/^[0-9]/)) {  // 以数字开头的行
                     return;
                 }
                 
+                // 9. 关键修复：为每个片段单独提取特殊要求
                 let specialMethod = '';
-                let specialPos = Infinity;
+                let specialPos = Infinity;   // 特殊要求出现的位置，只分配给其前面的药材
                 let cleanedSegment = segment;
                 
+                // 先处理括号内的特殊要求
                 const bracketMatch = segment.match(/\((.*?)\)/);
                 if (bracketMatch) {
                     const bracketContent = bracketMatch[1];
+                    // 检查括号内容是否包含特殊煎法
                     for (const method of specialMethods) {
                         if (bracketContent.includes(method)) {
                             specialMethod = method;
@@ -899,9 +961,11 @@
                         }
                     }
                     specialPos = bracketMatch.index;
+                    // 移除括号及内容
                     cleanedSegment = segment.replace(bracketMatch[0], '').trim();
                 }
                 
+                // 10. 处理中文数字格式
                 const chineseNumbers = {
                     '十五': '15', '十六': '16', '十七': '17', '十八': '18', '十九': '19',
                     '十一': '11', '十二': '12', '十三': '13', '十四': '14',
@@ -910,19 +974,31 @@
                     '六': '6', '七': '7', '八': '8', '九': '9', '十': '10'
                 };
                 
-                // 修改：{2,} 支持2个及以上汉字，不限最大长度，允许0个空格
+                // 处理中文数字格式：药材名 + 中文数字 + 可选单位
                 for (const [chineseNum, arabicNum] of Object.entries(chineseNumbers)) {
-                    const pattern = new RegExp(`([\\u4e00-\\u9fa5]{2,})${chineseNum}\\s*(个|枚|片)?`, 'g');
+                    // 匹配模式：药材名 + 中文数字 + 可选单位
+                    const pattern = new RegExp(`([\\u4e00-\\u9fa5]{2,4})${chineseNum}\\s*(个|枚|片)?`, 'g');
                     let match;
+                    
                     while ((match = pattern.exec(cleanedSegment)) !== null) {
                         let herbName = match[1];
                         const unit = match[2] || '';
-                        if (herbAliases[herbName]) herbName = herbAliases[herbName];
+                        
+                        // 处理别名
+                        if (herbAliases[herbName]) {
+                            herbName = herbAliases[herbName];
+                        }
+                        
                         let weight = parseFloat(arabicNum);
+                        
+                        // 应用单位转换（仅对大枣、生姜等）
                         if (unit && unitConversionRules[unit]) {
                             const needsConversion = unitConversionHerbs.some(name => herbName.includes(name));
-                            if (needsConversion) weight = weight * unitConversionRules[unit];
+                            if (needsConversion) {
+                                weight = weight * unitConversionRules[unit];
+                            }
                         }
+                        
                         if (!isNaN(weight) && weight > 0) {
                             herbs.push({
                                 name: herbName,
@@ -935,21 +1011,35 @@
                     }
                 }
                 
-                // 修改：{2,}，允许0或多个空格，兼容药名数字紧连无空格
-                const arabicPattern = /([\u4e00-\u9fa5]{2,})\s*(\d+(?:\.\d+)?)\s*(个|枚|片)?/g;
+                // 11. 处理阿拉伯数字格式
+                const arabicPattern = /([\u4e00-\u9fa5]{2,4})\s*(\d+(?:\.\d+)?)\s*(个|枚|片)?/g;
                 let arabicMatch;
+                
                 while ((arabicMatch = arabicPattern.exec(cleanedSegment)) !== null) {
                     let herbName = arabicMatch[1];
                     const weightStr = arabicMatch[2];
                     const unit = arabicMatch[3] || '';
-                    const alreadyAdded = herbs.some(h => h.name === herbName || (herbAliases[herbName] && h.name === herbAliases[herbName]));
+                    
+                    // 检查是否已经添加过
+                    const alreadyAdded = herbs.some(h => h.name === herbName || 
+                        (herbAliases[herbName] && h.name === herbAliases[herbName]));
+                    
                     if (!alreadyAdded) {
-                        if (herbAliases[herbName]) herbName = herbAliases[herbName];
+                        // 处理别名
+                        if (herbAliases[herbName]) {
+                            herbName = herbAliases[herbName];
+                        }
+                        
                         let weight = parseFloat(weightStr);
+                        
+                        // 应用单位转换（仅对大枣、生姜等）
                         if (unit && unitConversionRules[unit]) {
                             const needsConversion = unitConversionHerbs.some(name => herbName.includes(name));
-                            if (needsConversion) weight = weight * unitConversionRules[unit];
+                            if (needsConversion) {
+                                weight = weight * unitConversionRules[unit];
+                            }
                         }
+                        
                         if (!isNaN(weight) && weight > 0) {
                             herbs.push({
                                 name: herbName,
@@ -963,17 +1053,26 @@
                 }
             });
             
-            // 修改complexPattern，{2,}兼容长药名，无空格格式
-            const complexPattern = /([\u4e00-\u9fa5]{2,})\s*(\d+(?:\.\d+)?)\s*(?:g|克)?\s*\(?(先煎|后下|烊化|冲服|包煎|另煎)\)?/g;
+            // 12. 修复：单独处理"生龙骨 30g（先煎）"格式
+            // 使用原始文本，避免预处理影响
+            const complexPattern = /([\u4e00-\u9fa5]{2,4})\s*(\d+(?:\.\d+)?)\s*(?:g|克)?\s*\(?(先煎|后下|烊化|冲服|包煎|另煎)\)?/g;
             let complexMatch;
+            
             while ((complexMatch = complexPattern.exec(originalText)) !== null) {
                 const herbName = complexMatch[1];
                 const weightStr = complexMatch[2];
                 const method = complexMatch[3];
+                
+                // 查找是否已存在该药材
                 const existingIndex = herbs.findIndex(h => h.name === herbName);
+                
                 if (existingIndex !== -1) {
-                    if (!herbs[existingIndex].specialMethod) herbs[existingIndex].specialMethod = method;
+                    // 如果已存在，补充特殊要求
+                    if (!herbs[existingIndex].specialMethod) {
+                        herbs[existingIndex].specialMethod = method;
+                    }
                 } else {
+                    // 如果不存在，添加新药材
                     const weight = parseFloat(weightStr);
                     if (!isNaN(weight) && weight > 0) {
                         herbs.push({
@@ -987,24 +1086,35 @@
                 }
             }
             
-            const unitPattern = /([\u4e00-\u9fa5]{2,})\s*(\d+(?:\.\d+)?)\s*(个|枚|片)/g;
+            // 13. 处理没有数字的情况（如："生姜3片"）
+            // 扫描原始文本中的药材名+单位格式
+            const unitPattern = /([\u4e00-\u9fa5]{2,4})\s*(\d+(?:\.\d+)?)\s*(个|枚|片)/g;
             let unitMatch;
+            
             while ((unitMatch = unitPattern.exec(originalText)) !== null) {
                 const herbName = unitMatch[1];
                 const weightStr = unitMatch[2];
                 const unit = unitMatch[3];
+                
+                // 检查是否已经添加过
                 const existingIndex = herbs.findIndex(h => h.name === herbName);
+                
                 if (existingIndex === -1) {
                     let weight = parseFloat(weightStr);
+                    
+                    // 应用单位转换（仅对大枣、生姜等）
                     if (unit && unitConversionRules[unit]) {
                         const needsConversion = unitConversionHerbs.some(name => herbName.includes(name));
-                        if (needsConversion) weight = weight * unitConversionRules[unit];
+                        if (needsConversion) {
+                            weight = weight * unitConversionRules[unit];
+                        }
                     }
+                    
                     if (!isNaN(weight) && weight > 0) {
                         herbs.push({
                             name: herbName,
                             weight: weight,
-                            specialMethod: '',
+                            specialMethod: '', // 单位转换的药材通常没有特殊要求
                             originalUnit: unit,
                             converted: true
                         });
@@ -1012,99 +1122,76 @@
                 }
             }
             
+            // 14. 合并相同药材 - 保持原有逻辑
             const herbMap = new Map();
             herbs.forEach(herb => {
                 const key = herb.name;
                 if (herbMap.has(key)) {
                     const existingHerb = herbMap.get(key);
                     existingHerb.weight += herb.weight;
+                    // 关键修复：特殊要求合并逻辑
                     if (herb.specialMethod && !existingHerb.specialMethod) {
+                        // 如果现有药材没有特殊要求，但新药材有，则使用新的
                         existingHerb.specialMethod = herb.specialMethod;
-                    } else if (herb.specialMethod && existingHerb.specialMethod && herb.specialMethod !== existingHerb.specialMethod) {
+                    } else if (herb.specialMethod && existingHerb.specialMethod && 
+                               herb.specialMethod !== existingHerb.specialMethod) {
+                        // 如果两者都有但不同，合并（用分号分隔）
                         existingHerb.specialMethod = `${existingHerb.specialMethod}；${herb.specialMethod}`;
                     }
+                    // 合并单位信息
                     if (herb.originalUnit) {
-                        existingHerb.originalUnit = existingHerb.originalUnit ? `${existingHerb.originalUnit}+${herb.originalUnit}` : herb.originalUnit;
+                        existingHerb.originalUnit = existingHerb.originalUnit ? 
+                            `${existingHerb.originalUnit}+${herb.originalUnit}` : herb.originalUnit;
                     }
                     existingHerb.converted = existingHerb.converted || herb.converted;
                 } else {
                     herbMap.set(key, {...herb});
                 }
             });
+            
             return Array.from(herbMap.values());
         }
         
-        function pushFormulaHistory(inputText, results, total, foundCount, totalHerbs, unitConvertedCount) {
-            formulaHistory = formulaHistory.slice(0, formulaHistoryIndex + 1);
-            formulaHistory.push({
-                inputText: inputText,
-                results: JSON.parse(JSON.stringify(results)),
-                total: total,
-                foundCount: foundCount,
-                totalHerbs: totalHerbs,
-                unitConvertedCount: unitConvertedCount
-            });
-            formulaHistoryIndex = formulaHistory.length - 1;
-            updateFormulaNavButtons();
-        }
-
-        function restoreFormulaState(entry) {
-            document.getElementById('prescriptionInput').value = entry.inputText;
-            currentResults = JSON.parse(JSON.stringify(entry.results));
-            displayResults(currentResults, entry.total, entry.foundCount, entry.totalHerbs, entry.unitConvertedCount);
-            updateFormulaNavButtons();
-        }
-
-        function goPrevFormula() {
-            if (formulaHistoryIndex <= 0) {
-                showNotification('没有更早的方剂记录', 'info');
-                return;
-            }
-            formulaHistoryIndex--;
-            restoreFormulaState(formulaHistory[formulaHistoryIndex]);
-        }
-
-        function goNextFormula() {
-            if (formulaHistoryIndex >= formulaHistory.length - 1) {
-                showNotification('没有更新的方剂记录', 'info');
-                return;
-            }
-            formulaHistoryIndex++;
-            restoreFormulaState(formulaHistory[formulaHistoryIndex]);
-        }
-
-        function updateFormulaNavButtons() {
-            const prevBtn = document.getElementById('prevFormulaBtn');
-            const nextBtn = document.getElementById('nextFormulaBtn');
-            if (prevBtn) prevBtn.disabled = formulaHistoryIndex <= 0;
-            if (nextBtn) nextBtn.disabled = formulaHistoryIndex >= formulaHistory.length - 1;
-        }
-
         function calculatePrice() {
             const input = document.getElementById('prescriptionInput').value.trim();
             if (!input) {
                 showNotification('请输入方剂', 'error');
                 return;
             }
+            
             const herbs = parsePrescription(input);
+            
             if (herbs.length === 0) {
                 showNotification('未识别到有效药材信息，请检查格式', 'error');
                 return;
             }
+            
             const results = [];
             let total = 0;
             let foundCount = 0;
             let unitConvertedCount = 0;
+            
             herbs.forEach(herb => {
+                // 精确匹配
                 let herbInfo = herbsData.find(item => item.name === herb.name);
+                
+                // 模糊匹配（如果精确匹配失败）
                 if (!herbInfo) {
-                    herbInfo = herbsData.find(item => item.name.includes(herb.name) || herb.name.includes(item.name));
+                    herbInfo = herbsData.find(item => 
+                        item.name.includes(herb.name) || 
+                        herb.name.includes(item.name)
+                    );
                 }
+                
                 if (herbInfo) {
                     const price = herbInfo.price * herb.weight;
                     total += price;
                     foundCount++;
-                    if (herb.converted) unitConvertedCount++;
+                    
+                    if (herb.converted) {
+                        unitConvertedCount++;
+                    }
+                    
                     results.push({
                         name: herb.name,
                         weight: herb.weight,
@@ -1134,12 +1221,16 @@
                     });
                 }
             });
+            
             currentResults = results;
             displayResults(results, total, foundCount, herbs.length, unitConvertedCount);
-            pushFormulaHistory(input, results, total, foundCount, herbs.length, unitConvertedCount);
+            addHistoryEntry(input, currentResults, total, herbs.length);
+            
             if (foundCount > 0) {
                 let message = `识别${herbs.length}味，匹配${foundCount}味，总价${total.toFixed(2)}元`;
-                if (unitConvertedCount > 0) message += `（${unitConvertedCount}味已进行单位转换）`;
+                if (unitConvertedCount > 0) {
+                    message += `（${unitConvertedCount}味已进行单位转换）`;
+                }
                 showNotification(message);
             } else {
                 showNotification(`识别${herbs.length}味，但未匹配到价格`, 'error');
@@ -1149,20 +1240,28 @@
         function displayResults(results, total, foundCount, totalHerbs, unitConvertedCount) {
             const tbody = document.getElementById('resultsBody');
             tbody.innerHTML = '';
+            
             document.getElementById('herbCountText').textContent = `${totalHerbs}味`;
+            
             results.forEach((item, index) => {
                 const row = document.createElement('tr');
                 const priceClass = item.isZeroPrice ? 'zero-price' : '';
                 const nameClass = item.isFound ? '' : 'not-found';
+                
+                // 处理特殊要求显示
                 let specialMethodDisplay = item.specialMethod || '';
                 if (specialMethodDisplay) {
                     specialMethodDisplay = `<span class="special-method">${specialMethodDisplay}</span>`;
                 }
+                
+                // 处理单位转换显示：直接显示原始数量+单位（如"2片"），价格仍按克计算
+                // 克数显示：整数去掉小数点（16.0 → 16），非整数保留小数（16.5）
                 let weightDisplay = formatWeight(item.weight);
                 if (item.originalUnit && item.converted) {
                     const showUnit = item.originalUnit.split('+')[0];
                     weightDisplay = `${formatWeight(item.weight / 5)}${showUnit}`;
                 }
+                
                 row.innerHTML = `
                     <td class="${nameClass} editable-cell" data-index="${index}" data-field="name">${item.name}</td>
                     <td class="editable-cell" data-index="${index}" data-field="weight">${weightDisplay}</td>
@@ -1173,25 +1272,35 @@
                 `;
                 tbody.appendChild(row);
             });
+            
             document.getElementById('totalAmount').textContent = total.toFixed(2);
             document.getElementById('resultsContainer').classList.remove('hidden');
             document.getElementById('emptyResults').classList.add('hidden');
+            
             updatePriceDisplay();
             setupInlineEditing();
         }
         
+        // 新增：复制药材信息功能
         function copyHerbDataToClipboard() {
             if (currentResults.length === 0) {
                 showNotification('没有药材信息可以复制', 'error');
                 return;
             }
+            
+            // 构建表格格式的文本
             let tableText = '';
             currentResults.forEach(item => {
+                // 药材名称 + 制表符 + 用量 + 制表符 + 特殊要求
+                // 用量同样去掉小数尾零
                 tableText += `${item.name}\t${formatWeight(item.weight)}\t${item.specialMethod || ''}\n`;
             });
+            
+            // 使用 Clipboard API 复制到剪贴板
             navigator.clipboard.writeText(tableText).then(() => {
                 showNotification('已复制药材信息到剪贴板，可用Ctrl+V粘贴到Excel或Word中');
             }).catch(err => {
+                // 如果 Clipboard API 失败，使用备用方法
                 const textArea = document.createElement('textarea');
                 textArea.value = tableText;
                 document.body.appendChild(textArea);
@@ -1206,8 +1315,79 @@
             });
         }
         
+        // 方剂历史：读取、保存、切换
+        function loadHistory() {
+            try {
+                const stored = localStorage.getItem(HISTORY_KEY);
+                historyEntries = stored ? JSON.parse(stored) : [];
+            } catch (e) {
+                historyEntries = [];
+            }
+            currentHistoryIndex = historyEntries.length > 0 ? historyEntries.length - 1 : -1;
+        }
+        
+        function saveHistoryToStorage() {
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(historyEntries));
+        }
+        
+        function addHistoryEntry(input, results, total, totalHerbs) {
+            // 与最新一条完全相同则不重复保存
+            if (historyEntries.length > 0 && historyEntries[historyEntries.length - 1].input === input) {
+                currentHistoryIndex = historyEntries.length - 1;
+                updateHistoryNav();
+                return;
+            }
+            historyEntries.push({
+                time: Date.now(),
+                input: input,
+                results: results.map(r => ({ ...r })),
+                total: total,
+                totalHerbs: totalHerbs
+            });
+            // 最多保留最近100条，避免无限增长
+            if (historyEntries.length > MAX_HISTORY) {
+                historyEntries.splice(0, historyEntries.length - MAX_HISTORY);
+            }
+            currentHistoryIndex = historyEntries.length - 1;
+            saveHistoryToStorage();
+            updateHistoryNav();
+        }
+        
+        function updateHistoryNav() {
+            const posEl = document.getElementById('historyPosition');
+            if (!historyEntries.length) {
+                posEl.textContent = '暂无历史';
+                document.getElementById('prevHistoryBtn').disabled = true;
+                document.getElementById('nextHistoryBtn').disabled = true;
+                return;
+            }
+            posEl.textContent = `第 ${currentHistoryIndex + 1}/${historyEntries.length} 剂`;
+            document.getElementById('prevHistoryBtn').disabled = currentHistoryIndex <= 0;
+            document.getElementById('nextHistoryBtn').disabled = currentHistoryIndex >= historyEntries.length - 1;
+        }
+        
+        function loadHistoryEntry(index, silent) {
+            if (index < 0 || index >= historyEntries.length) return;
+            const entry = historyEntries[index];
+            currentHistoryIndex = index;
+            currentResults = entry.results.slice();
+            document.getElementById('prescriptionInput').value = entry.input;
+            displayResults(currentResults, entry.total, 0, entry.totalHerbs, 0);
+            updateHistoryNav();
+            if (!silent) {
+                showNotification(`已载入第 ${index + 1} 剂方剂`, 'info');
+            }
+        }
+        
+        function navigateHistory(delta) {
+            const target = currentHistoryIndex + delta;
+            if (target < 0 || target >= historyEntries.length) return;
+            loadHistoryEntry(target, false);
+        }
+        
         function setupInlineEditing() {
             const editableCells = document.querySelectorAll('.editable-cell');
+            
             editableCells.forEach(cell => {
                 cell.addEventListener('dblclick', (e) => {
                     if (e.target.classList.contains('editable-cell')) {
@@ -1221,21 +1401,28 @@
             const originalContent = cell.textContent;
             const field = cell.getAttribute('data-field');
             const index = parseInt(cell.getAttribute('data-index'));
+            
+            // 如果是特殊要求列，需要处理HTML内容
             let originalValue = originalContent;
             if (field === 'specialMethod' && cell.querySelector('.special-method')) {
                 originalValue = cell.querySelector('.special-method').textContent;
             }
+            
             const input = document.createElement('input');
             input.type = 'text';
             input.value = originalValue;
+            // 单位转换过的重量单元格：编辑时默认填入克数（内部仍以克计算）
             if (field === 'weight' && currentResults[index] && currentResults[index].converted) {
                 input.value = formatWeight(currentResults[index].weight);
             }
+            
             cell.textContent = '';
             cell.appendChild(input);
             cell.classList.add('editing');
+            
             input.focus();
             input.select();
+            
             input.addEventListener('blur', () => finishEditing(cell, input, field, index, originalContent, originalValue));
             input.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
@@ -1249,11 +1436,13 @@
         
         function finishEditing(cell, input, field, index, originalContent, originalValue) {
             const newValue = input.value.trim();
+            
             if (newValue === originalValue) {
                 cell.innerHTML = originalContent;
                 cell.classList.remove('editing');
                 return;
             }
+            
             if (currentResults[index]) {
                 if (field === 'price') {
                     const newPrice = parseFloat(newValue);
@@ -1302,6 +1491,7 @@
                     }
                 }
             }
+            
             cell.classList.remove('editing');
             showNotification('已更新');
         }
@@ -1318,22 +1508,34 @@
             const priceHeaders = document.querySelectorAll('.price-header');
             const priceValues = document.querySelectorAll('td:nth-child(5)');
             const priceToggles = document.querySelectorAll('.price-toggle');
+            
             if (isPriceVisible) {
                 priceHeaders.forEach(header => header.style.display = 'table-cell');
-                priceValues.forEach(value => { value.style.display = 'table-cell'; });
-                priceToggles.forEach(toggle => toggle.classList.remove('active'));
+                priceValues.forEach(value => {
+                    value.style.display = 'table-cell';
+                });
+                priceToggles.forEach(toggle => {
+                    toggle.classList.remove('active');
+                });
             } else {
                 priceHeaders.forEach(header => header.style.display = 'none');
-                priceValues.forEach(value => { value.style.display = 'none'; });
-                priceToggles.forEach(toggle => toggle.classList.add('active'));
+                priceValues.forEach(value => {
+                    value.style.display = 'none';
+                });
+                priceToggles.forEach(toggle => {
+                    toggle.classList.add('active');
+                });
             }
         }
         
         function updatePriceToggleState() {
             const priceToggles = document.querySelectorAll('.price-toggle');
             priceToggles.forEach(toggle => {
-                if (isPriceVisible) toggle.classList.remove('active');
-                else toggle.classList.add('active');
+                if (isPriceVisible) {
+                    toggle.classList.remove('active');
+                } else {
+                    toggle.classList.add('active');
+                }
             });
         }
         
@@ -1342,6 +1544,7 @@
             savePriceVisibility();
             updatePriceToggleState();
             updatePriceDisplay();
+            
             showNotification(isPriceVisible ? '已显示价格' : '已完毕', 'info');
         }
         
@@ -1356,15 +1559,21 @@
             showNotification('已清空输入和计算结果');
         }
         
+        
         function renderPriceList(filter = '') {
             const container = document.getElementById('priceList');
             container.innerHTML = '';
-            filteredHerbsData = herbsData.filter(item => item.name.toLowerCase().includes(filter.toLowerCase()));
+            
+            filteredHerbsData = herbsData.filter(item => 
+                item.name.toLowerCase().includes(filter.toLowerCase())
+            );
+            
             if (filteredHerbsData.length === 0) {
                 container.innerHTML = '<div class="price-item" style="text-align:center;color:#888;padding:20px;grid-column:1/-1;">无数据，请上传Excel</div>';
                 updateDataCount();
                 return;
             }
+            
             filteredHerbsData.forEach((herb, index) => {
                 const item = document.createElement('div');
                 const priceClass = herb.price === 0 ? 'zero-price' : '';
@@ -1382,7 +1591,9 @@
                 `;
                 container.appendChild(item);
             });
+            
             updateDataCount();
+            
             container.querySelectorAll('.delete-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -1394,6 +1605,7 @@
         
         function setupAdminInlineEditing() {
             const container = document.getElementById('priceList');
+            
             container.addEventListener('dblclick', (e) => {
                 if (e.target.classList.contains('editable-cell')) {
                     startAdminEditing(e.target);
@@ -1405,18 +1617,26 @@
             const originalContent = cell.textContent;
             const field = cell.getAttribute('data-field');
             const index = parseInt(cell.getAttribute('data-index'));
+            
             const input = document.createElement('input');
             input.type = 'text';
             input.value = originalContent;
+            
             cell.textContent = '';
             cell.appendChild(input);
             cell.classList.add('editing');
+            
             input.focus();
             input.select();
+            
             input.addEventListener('blur', () => finishAdminEditing(cell, input, field, index, originalContent));
             input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') input.blur();
-                else if (e.key === 'Escape') { cell.textContent = originalContent; cell.classList.remove('editing'); }
+                if (e.key === 'Enter') {
+                    input.blur();
+                } else if (e.key === 'Escape') {
+                    cell.textContent = originalContent;
+                    cell.classList.remove('editing');
+                }
             });
         }
         
@@ -1424,19 +1644,23 @@
             const newValue = input.value.trim();
             const item = cell.closest('.price-item');
             const originalIndex = parseInt(item.getAttribute('data-original-index'));
+            
             if (!newValue || newValue === originalContent) {
                 cell.textContent = originalContent;
                 cell.classList.remove('editing');
                 return;
             }
+            
             if (originalIndex === -1 || !herbsData[originalIndex]) {
                 cell.textContent = originalContent;
                 cell.classList.remove('editing');
                 showNotification('未找到对应药材数据', 'error');
                 return;
             }
+            
             let success = false;
             let displayValue = newValue;
+            
             if (field === 'name') {
                 herbsData[originalIndex].name = newValue;
                 filteredHerbsData[index].name = newValue;
@@ -1463,18 +1687,25 @@
                 displayValue = originalContent;
                 success = true;
             }
+            
             if (success) {
                 saveData();
                 cell.textContent = displayValue;
+                
                 if (field === 'price') {
                     const newPrice = parseFloat(newValue);
-                    if (newPrice === 0) cell.classList.add('zero-price');
-                    else cell.classList.remove('zero-price');
+                    if (newPrice === 0) {
+                        cell.classList.add('zero-price');
+                    } else {
+                        cell.classList.remove('zero-price');
+                    }
                 }
+                
                 showNotification('已更新');
             } else {
                 cell.textContent = originalContent;
             }
+            
             cell.classList.remove('editing');
         }
         
@@ -1483,6 +1714,7 @@
                 showNotification('未找到对应药材数据', 'error');
                 return;
             }
+            
             if (confirm(`删除 ${herbsData[originalIndex].name}？`)) {
                 herbsData.splice(originalIndex, 1);
                 saveData();
@@ -1495,76 +1727,133 @@
             document.getElementById('priceFileUpload').click();
         }
         
+        
         function processUploadedFile(event) {
             const file = event.target.files[0];
             if (!file) return;
+            
             const progressDiv = document.getElementById('uploadProgress');
             progressDiv.classList.remove('hidden');
             progressDiv.innerHTML = '正在读取Excel文件...';
+            
             const reader = new FileReader();
+            
             reader.onload = function(e) {
                 try {
                     const data = new Uint8Array(e.target.result);
                     progressDiv.innerHTML = '正在解析工作表...';
-                    const workbook = XLSX.read(data, { type: 'array', cellDates: false, cellNF: false, cellText: true, raw: false });
+                    
+                    const workbook = XLSX.read(data, { 
+                        type: 'array',
+                        cellDates: false,
+                        cellNF: false,
+                        cellText: true,
+                        raw: false
+                    });
+                    
                     const sheetNames = workbook.SheetNames;
                     progressDiv.innerHTML = `找到 ${sheetNames.length} 个工作表，处理第一个工作表...`;
+                    
                     const firstSheet = workbook.Sheets[sheetNames[0]];
-                    const sheetData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '', blankrows: false });
+                    
+                    const sheetData = XLSX.utils.sheet_to_json(firstSheet, { 
+                        header: 1,
+                        defval: '',
+                        blankrows: false
+                    });
+                    
                     progressDiv.innerHTML = `找到 ${sheetData.length} 行数据，正在处理...`;
+                    
                     const newHerbsData = [];
                     let processedCount = 0;
                     let skippedCount = 0;
                     let zeroPriceCount = 0;
+                    
                     for (let i = 0; i < sheetData.length; i++) {
                         const row = sheetData[i];
-                        if (!Array.isArray(row) || row.length === 0) { skippedCount++; continue; }
+                        
+                        if (!Array.isArray(row) || row.length === 0) {
+                            skippedCount++;
+                            continue;
+                        }
+                        
                         const herbName = row[0] !== undefined && row[0] !== null ? String(row[0]).trim() : '';
-                        const location = row[3] !== undefined && row[3] !== null ? String(row[3]).trim() : '';
+                        const location = row[1] !== undefined && row[1] !== null ? String(row[1]).trim() : '';
                         const hint = row[4] !== undefined && row[4] !== null ? String(row[4]).trim() : '';
                         const priceCell = row[10] !== undefined ? row[10] : '';
-                        if (!herbName || herbName === '' || herbName === 'undefined' || herbName.toLowerCase() === 'null') { skippedCount++; continue; }
+                        
+                        if (!herbName || herbName === '' || herbName === 'undefined' || herbName.toLowerCase() === 'null') {
+                            skippedCount++;
+                            continue;
+                        }
+                        
                         let price = 0;
+                        
                         if (priceCell === '' || priceCell === null || priceCell === undefined) {
-                            price = 0; zeroPriceCount++;
+                            price = 0;
+                            zeroPriceCount++;
                         } else {
                             price = parseFloat(priceCell);
                             if (isNaN(price)) {
                                 const priceStr = String(priceCell);
                                 const priceMatch = priceStr.match(/[-+]?\d*\.?\d+/);
-                                if (priceMatch) price = parseFloat(priceMatch[0]);
+                                if (priceMatch) {
+                                    price = parseFloat(priceMatch[0]);
+                                }
                             }
-                            if (isNaN(price)) price = 0;
+                            
+                            if (isNaN(price)) {
+                                price = 0;
+                            }
+                            
                             if (price === 0) zeroPriceCount++;
                         }
-                        newHerbsData.push({ name: herbName, location: location, price: price, hint: hint });
+                        
+                        newHerbsData.push({
+                            name: herbName,
+                            location: location,
+                            price: price,
+                            hint: hint
+                        });
+                        
                         processedCount++;
-                        if (processedCount % 200 === 0) progressDiv.innerHTML = `已处理 ${processedCount} 条数据...`;
+                        
+                        if (processedCount % 200 === 0) {
+                            progressDiv.innerHTML = `已处理 ${processedCount} 条数据...`;
+                        }
                     }
+                    
                     progressDiv.innerHTML = `处理完成！有效数据: ${processedCount} 条，跳过: ${skippedCount} 条，零价格: ${zeroPriceCount} 条`;
+                    
                     if (newHerbsData.length === 0) {
                         showNotification('未在Excel文件中找到有效数据', 'error');
                         progressDiv.classList.add('hidden');
                         return;
                     }
+                    
                     herbsData = newHerbsData;
                     saveData();
+                    
                     setTimeout(() => {
                         renderPriceList();
                         progressDiv.classList.add('hidden');
                         showNotification(`成功上传 ${newHerbsData.length} 条药材记录（其中 ${zeroPriceCount} 条价格为0）`, 'success');
                     }, 800);
+                    
                     event.target.value = '';
+                    
                 } catch (error) {
                     console.error('处理Excel文件时出错:', error);
                     progressDiv.classList.add('hidden');
                     showNotification(`处理文件出错: ${error.message}`, 'error');
                 }
             };
+            
             reader.onerror = function() {
                 progressDiv.classList.add('hidden');
                 showNotification('读取文件失败', 'error');
             };
+            
             reader.readAsArrayBuffer(file);
         }
         
@@ -1573,6 +1862,7 @@
                 showNotification('无数据可清空', 'info');
                 return;
             }
+            
             if (confirm(`清空${herbsData.length}条记录？`)) {
                 herbsData = [];
                 filteredHerbsData = [];
@@ -1584,6 +1874,7 @@
         
         function setupEnterKeyCalculation() {
             const prescriptionInput = document.getElementById('prescriptionInput');
+            
             prescriptionInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey) {
                     e.preventDefault();
@@ -1594,28 +1885,35 @@
         
         function initApp() {
             initializeData();
+            
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', () => {
                     const tabId = tab.getAttribute('data-tab');
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
                     document.getElementById(tabId).classList.add('active');
                     if (tabId === 'admin') renderPriceList();
                 });
             });
+            
             document.getElementById('calculateBtn').addEventListener('click', calculatePrice);
-            document.getElementById('prevFormulaBtn').addEventListener('click', goPrevFormula);
-            document.getElementById('nextFormulaBtn').addEventListener('click', goNextFormula);
-            updateFormulaNavButtons();
             document.getElementById('clearBtn').addEventListener('click', clearInput);
             document.getElementById('addHerbBtn').addEventListener('click', () => {
-                const newHerb = { name: '新药材', location: '', price: 0, hint: '' };
+                const newHerb = {
+                    name: '新药材',
+                    location: '',
+                    price: 0,
+                    hint: ''
+                };
                 herbsData.push(newHerb);
                 filteredHerbsData.push(newHerb);
                 saveData();
                 renderPriceList();
                 showNotification('已添加新药材');
+                // 滚动到最底部一行并自动进入编辑模式
                 setTimeout(() => {
                     const listContainer = document.getElementById('priceList');
                     const lastItem = listContainer.querySelector('.price-item:last-child');
@@ -1629,18 +1927,34 @@
             document.getElementById('uploadPriceBtn').addEventListener('click', handleBulkUpload);
             document.getElementById('priceFileUpload').addEventListener('change', processUploadedFile);
             document.getElementById('clearAllBtn').addEventListener('click', clearAllData);
+            
             document.getElementById('priceToggle').addEventListener('click', togglePriceVisibility);
             document.getElementById('copyDataBtn').addEventListener('click', copyHerbDataToClipboard);
+            
+            document.getElementById('prevHistoryBtn').addEventListener('click', () => navigateHistory(-1));
+            document.getElementById('nextHistoryBtn').addEventListener('click', () => navigateHistory(1));
+            
             document.getElementById('searchHerb').addEventListener('input', (e) => {
                 renderPriceList(e.target.value);
             });
+            
             setupEnterKeyCalculation();
+            
             setupAdminInlineEditing();
             renderPriceList();
-            document.getElementById('resultsContainer').classList.add('hidden');
-            document.getElementById('emptyResults').classList.remove('hidden');
+            
+            // 有历史记录时自动载入最后一剂，退出重开也能看到
+            if (historyEntries.length > 0) {
+                loadHistoryEntry(historyEntries.length - 1, true);
+            } else {
+                document.getElementById('resultsContainer').classList.add('hidden');
+                document.getElementById('emptyResults').classList.remove('hidden');
+                updateHistoryNav();
+            }
+            
             updatePriceDisplay();
         }
+        
         document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
