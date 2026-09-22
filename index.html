@@ -227,7 +227,7 @@
         .results-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: 14px;
             flex-grow: 1;
         }
         
@@ -241,10 +241,14 @@
         }
         
         .results-table td {
-            padding: 8px;
+            padding: 4px 8px;
             border-bottom: 1px solid #e8f5f3;
-            height: 38px;
+            height: 30px;
             position: relative;
+        }
+        
+        .results-table .editable-cell {
+            padding: 2px 8px;
         }
         
         .results-table tr:nth-child(even) {
@@ -552,58 +556,22 @@
         }
         
         
-        /* 方剂历史导航样式 */
-        .history-nav {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 12px;
-            background-color: #f0f9f8;
-            border: 1px solid #e0f2f1;
-            border-radius: 6px;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-        }
-        
-        .history-btn {
-            background: none;
-            border: 1px solid #b2dfdb;
-            color: #4a8c87;
-            padding: 6px 14px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
-        .history-btn:hover:not(:disabled) {
-            background-color: #80cbc4;
-            color: white;
-            border-color: #80cbc4;
-        }
-        
-        .history-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-        
+        /* 方剂历史按钮样式（常驻在计算与清空之间） */
         .history-position {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
-            color: #4a8c87;
-            min-width: 70px;
+            color: #7aa9a5;
+            min-width: 58px;
             text-align: center;
             white-space: nowrap;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
-        .history-hint {
-            font-size: 12px;
-            color: #7aa9a5;
-            margin-left: auto;
-            white-space: nowrap;
+        .btn-outline:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
         }
         
         /* 移动端优化 */
@@ -636,11 +604,15 @@
             }
             
             .results-table {
-                font-size: 12px;
+                font-size: 13px;
             }
             
-            .results-table th, .results-table td {
+            .results-table th {
                 padding: 6px 4px;
+            }
+            
+            .results-table td {
+                padding: 2px 4px;
             }
             
             .action-buttons {
@@ -719,10 +691,17 @@
                     <div class="input-section">
                         <textarea id="prescriptionInput" placeholder="请输入方剂组成，格式：药材 用量，如：桂枝 15，白芍 25。按回车键可直接计算价格
 常用单位转换规则：
-• 大枣、生姜等：1个/枚/片 = 5g"></textarea>
+• 大枣、生姜等：1个/枚/片/颗/粒/只 = 5g"></textarea>
                         <div class="action-buttons">
                             <button class="btn btn-primary" id="calculateBtn">
                                 <i class="fas fa-calculator"></i> 计算价格
+                            </button>
+                            <button class="btn btn-outline" id="prevHistoryBtn" title="上一个方剂（历史自动保存，关闭浏览器后仍在）">
+                                <i class="fas fa-chevron-left"></i> 上一个
+                            </button>
+                            <span class="history-position" id="historyPosition">暂无历史</span>
+                            <button class="btn btn-outline" id="nextHistoryBtn" title="下一个方剂（历史自动保存，关闭浏览器后仍在）">
+                                下一个 <i class="fas fa-chevron-right"></i>
                             </button>
                             <button class="btn btn-secondary" id="clearBtn">
                                 <i class="fas fa-broom"></i> 清空
@@ -741,16 +720,6 @@
                             </div>
                         </div>
                         <div id="resultsContainer" class="hidden">
-                            <div class="history-nav">
-                                <button class="history-btn" id="prevHistoryBtn" title="上一个方剂">
-                                    <i class="fas fa-chevron-left"></i> 上一个
-                                </button>
-                                <span class="history-position" id="historyPosition">暂无历史</span>
-                                <button class="history-btn" id="nextHistoryBtn" title="下一个方剂">
-                                    下一个 <i class="fas fa-chevron-right"></i>
-                                </button>
-                                <span class="history-hint">历史方剂自动保存，关闭浏览器后仍在</span>
-                            </div>
                             <table class="results-table" id="resultsTable">
                                 <thead>
                                     <tr>
@@ -921,7 +890,10 @@
             const unitConversionRules = {
                 '个': 5,    // 大枣、生姜等，1个=5g
                 '枚': 5,    // 同"个"
-                '片': 5     // 生姜片等，1片=5g
+                '片': 5,    // 生姜片等，1片=5g
+                '颗': 5,    // 乌梅、大枣等，1颗=5g
+                '粒': 5,    // 同"颗"
+                '只': 5     // 大枣等，1只=5g
             };
             
             // 7. 改进的分割方式 - 按逗号、分号、句号分割
@@ -977,7 +949,7 @@
                 // 处理中文数字格式：药材名 + 中文数字 + 可选单位
                 for (const [chineseNum, arabicNum] of Object.entries(chineseNumbers)) {
                     // 匹配模式：药材名 + 中文数字 + 可选单位
-                    const pattern = new RegExp(`([\\u4e00-\\u9fa5]{2,4})${chineseNum}\\s*(个|枚|片)?`, 'g');
+                    const pattern = new RegExp(`([\\u4e00-\\u9fa5]{2,4})${chineseNum}\\s*(个|枚|片|颗|粒|只)?`, 'g');
                     let match;
                     
                     while ((match = pattern.exec(cleanedSegment)) !== null) {
@@ -1012,7 +984,7 @@
                 }
                 
                 // 11. 处理阿拉伯数字格式
-                const arabicPattern = /([\u4e00-\u9fa5]{2,4})\s*(\d+(?:\.\d+)?)\s*(个|枚|片)?/g;
+                const arabicPattern = /([\u4e00-\u9fa5]{2,4})\s*(\d+(?:\.\d+)?)\s*(个|枚|片|颗|粒|只)?/g;
                 let arabicMatch;
                 
                 while ((arabicMatch = arabicPattern.exec(cleanedSegment)) !== null) {
@@ -1088,7 +1060,7 @@
             
             // 13. 处理没有数字的情况（如："生姜3片"）
             // 扫描原始文本中的药材名+单位格式
-            const unitPattern = /([\u4e00-\u9fa5]{2,4})\s*(\d+(?:\.\d+)?)\s*(个|枚|片)/g;
+            const unitPattern = /([\u4e00-\u9fa5]{2,4})\s*(\d+(?:\.\d+)?)\s*(个|枚|片|颗|粒|只)/g;
             let unitMatch;
             
             while ((unitMatch = unitPattern.exec(originalText)) !== null) {
